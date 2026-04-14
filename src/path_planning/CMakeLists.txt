@@ -1,0 +1,58 @@
+cmake_minimum_required(VERSION 3.13) 
+project(path_planning CXX)
+ 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Eigen3 REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+
+add_executable(path_planning_node uart/uart.cpp
+    uart/handlers/odometry_handler.cpp
+    uart/messages/odometry_message.cpp
+    uart/messages/autoaim_message.cpp
+    uart/messages/alive_message.cpp
+    uart/messages/auto_path_message.cpp
+    uart/crc/crc.cpp
+    src/main.cpp)
+
+ament_target_dependencies(path_planning_node 
+    rclcpp 
+    nav_msgs 
+    visualization_msgs 
+    geometry_msgs
+    tf2
+    tf2_geometry_msgs
+)
+
+target_include_directories(path_planning_node PRIVATE 
+${CMAKE_CURRENT_SOURCE_DIR}
+${EIGEN3_INCLUDE_DIRS})
+
+install(TARGETS path_planning_node DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# rviz2 -d /path/to/your/config_file.rviz
+ 
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # comment the line when a copyright and license is added to all source files
+  set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # comment the line when this package is in a git repo and when
+  # a copyright and license is added to all source files
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()

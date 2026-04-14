@@ -1,0 +1,33 @@
+cam0:
+  camera_model: pinhole
+  intrinsics: [1390.3, 1389.25, 968.4056, 536.008]
+  distortion_model: plumb_bob
+  distortion_coeffs: [0, 0, 0, 0, 0]
+  resolution: [1920, 1080]
+  image_topic: /front/camera/color/image_raw
+  # image_transport: raw
+  tag_topic: /cam_sync/cam_0/detector/tags
+  tag_detector: umich
+  rig_body: rig
+cam1:
+  camera_model: pinhole
+  intrinsics: [1388.89, 1388.70, 969.69, 538.37841]
+  distortion_model: plumb_bob
+  distortion_coeffs: [0, 0, 0, 0, 0]
+  resolution: [1920, 1080]
+  image_topic: /left/camera/color/image_raw
+  # image_transport: raw
+  tag_topic: /cam_sync/cam_1/detector/tags
+  tag_detector: umich
+  rig_body: rig
+cam2:
+  camera_model: pinhole
+  intrinsics: [1390.05, 1390.08, 967.425, 551.569]
+  distortion_model: plumb_bob
+  distortion_coeffs: [0, 0, 0, 0, 0]
+  resolution: [1920, 1080]
+  image_topic: /right/camera/color/image_raw
+  # image_transport: raw
+  tag_topic: /cam_sync/cam_2/detector/tags
+  tag_detector: umich
+  rig_body: rig

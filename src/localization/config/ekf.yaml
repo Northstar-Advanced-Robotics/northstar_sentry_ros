@@ -1,0 +1,39 @@
+ekf_filter_node:
+  ros__parameters:
+    use_sim_time: false
+    frequency: 30.0
+    two_d_mode: true  # CRITICAL: This forces Z, Roll, and Pitch to 0
+    
+    publish_tf: true
+    map_frame: map             # Parent frame
+    odom_frame: odom               # Intermediate frame
+    base_link_frame: base_link           # Your robot center
+    world_frame: map
+
+    # TagSLAM Pose input
+    pose0: /odom/body_rig  # Adjust if TagSLAM topic differs
+    pose0_config: [true,  true,  false, # X, Y, Z (Z is false)
+                   false, false, true,  # Roll, Pitch, Yaw (R/P are false)
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]
+    pose0_differential: false
+    pose0_relative: false
+
+    odom0: /odom/robot  
+    # 2. The Config Matrix
+    # We fuse linear velocity (Vx, Vy) and angular velocity (Vyaw).
+    # We DO NOT fuse X/Y position directly, relying on the EKF integration instead.
+    # [x,  y,  z,
+    #  r,  p,  yaw,
+    #  vx, vy, vz,
+    #  vr, vp, vyaw,
+    #  ax, ay, az]
+    odom0_config: [false, false, false,
+                    false, false, false,
+                    true,  true, false,
+                    false, false, true,
+                    false, false, false]
+
+    odom0_differential: false
+    odom0_relative: false
