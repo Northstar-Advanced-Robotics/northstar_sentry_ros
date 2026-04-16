@@ -1,0 +1,4 @@
+[submodule "src/detector"]
+	path = src/detector
+	url = https://github.com/GOFIRST-Robotics/Northstar-CV.git
+	branch = Clean-PF

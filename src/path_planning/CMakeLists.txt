@@ -12,13 +12,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
-add_executable(path_planning_node uart/uart.cpp
-    uart/handlers/odometry_handler.cpp
-    uart/messages/odometry_message.cpp
-    uart/messages/autoaim_message.cpp
-    uart/messages/alive_message.cpp
-    uart/messages/auto_path_message.cpp
-    uart/crc/crc.cpp
+add_executable(path_planning_node
     src/main.cpp)
 
 ament_target_dependencies(path_planning_node 

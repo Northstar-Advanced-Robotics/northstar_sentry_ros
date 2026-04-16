@@ -2,6 +2,8 @@ import launch
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('localization')
@@ -19,22 +21,28 @@ def generate_launch_description():
         'right': {'serial': '827312073427', 'x': '0.036',  'y': '-0.081', 'z': '0.595', 'yaw': '-1.5708'}
     }
 
-    sync_and_detect = Node(
-        package="tagslam",
-        executable="sync_and_detect_node",
+    uart_bridge = Node(
+        package="uart_bridge",
+        executable="uart_bridge_node",
         output="screen",
+        name="uart_bridge",
+    )
+
+    sync_and_detect = ComposableNode(
+        package="tagslam",
+        plugin="tagslam::SyncAndDetect",
         name="sync_and_detect",
         parameters=[{"cameras": cameras_config,
                      "tagslam_config": tagslam_config,
                      "use_sim_time": False,
                      "use_approximate_sync": True}],
         remappings=[],
+        extra_arguments=[{'use_intra_process_comms' : True}],
     )
 
-    tagslam = Node(
+    tagslam = ComposableNode(
         package="tagslam",
-        executable="tagslam_node",
-        output="screen",
+        plugin="tagslam::TagSLAM",
         name="tagslam",
         parameters=[{"cameras": cameras_config,
                      "tagslam_config": tagslam_config,
@@ -42,6 +50,7 @@ def generate_launch_description():
                      "use_sim_time": False,
                      "use_approximate_sync": True}],
         remappings=[],
+        extra_arguments=[{'use_intra_process_comms' : True}],
     )
 
     ekf_node = Node(
@@ -50,38 +59,57 @@ def generate_launch_description():
         name='ekf_filter_node',
         output='screen',
         parameters=[ekf_config]
-        # remappings=[('/odometry/filtered', '/odom')]
     )
 
-    launch_nodes.extend([sync_and_detect, tagslam, ekf_node])
+    launch_nodes.extend([sync_and_detect, tagslam])
    
     detection_topics = []
     for name, config in cameras.items():
 
-        tf = Node(
+        tf = ComposableNode(
             package='tf2_ros',
             name=f'tf_{name}',
-            executable='static_transform_publisher',
-            arguments=[
-                '--x', config['x'], '--y', config['y'], '--z', config['z'],
-                '--yaw', config['yaw'], '--pitch', '0', '--roll', '0',
-                '--frame-id', 'rig', '--child-frame-id', f'{name}_cam_link',
-            ]
+            plugin='tf2_ros::StaticTransformBroadcasterNode',
+            parameters=[{"x": config['x'],
+                         "y": config['y'],
+                         "z": config['z'],
+                         "yaw": config['yaw'],
+                         "pitch": '0',
+                         "roll": '0',
+                         "frame-id": 'rig',
+                         "child-frame-id": f'{name}_cam_link',
+                         "use_sim_time": False,
+                         "use_approximate_sync": True}],
+            # arguments=[
+            #     '--x', config['x'], '--y', config['y'], '--z', config['z'],
+            #     '--yaw', config['yaw'], '--pitch', '0', '--roll', '0',
+            #     '--frame-id', 'rig', '--child-frame-id', f'{name}_cam_link',
+            # ],
+            extra_arguments=[{'use_intra_process_comms' : True}],
         )
 
-        realsense_node = Node(
+        realsense_node = ComposableNode(
             package='realsense2_camera',
-            executable='realsense2_camera_node',
+            plugin='realsense2_camera::RealSenseNodeFactory',
             name='camera',
             namespace=name,
-            output="screen",
             parameters=[camera_config, {
                 'serial_no': config['serial'],
                 'camera_name': f'{name}_cam',
             }],
+            extra_arguments=[{'use_intra_process_comms' : True}],
         )
 
         launch_nodes.extend([realsense_node, tf])
 
 
-    return launch.LaunchDescription(launch_nodes)
+    container = ComposableNodeContainer(
+        name='sentry_stack',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=launch_nodes,
+        output='both',
+    )
+
+    return launch.LaunchDescription([container, uart_bridge, ekf_node])
