@@ -21,5 +21,5 @@ else
     --userns=host \
     --user=$(id -u):$(id -g) \
     --name="ros-container" \
-    ros:tagslam bash -i
+    ros:nvidia bash -i
 fi

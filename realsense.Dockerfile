@@ -29,6 +29,7 @@ RUN ["/bin/bash", "-c", "\
   apt-get update -y && \
   apt-get install libasio-dev -y && \
   apt-get install clangd -y && \
+  apt-get install ros-${ROS_DISTRO}-librealsense2 -y && \
   apt-get install ros-${ROS_DISTRO}-apriltag-ros -y && \
   apt-get install ninja-build -y \
 "]
