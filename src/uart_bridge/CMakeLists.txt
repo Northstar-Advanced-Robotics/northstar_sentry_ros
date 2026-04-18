@@ -24,7 +24,9 @@ add_executable(uart_bridge_node
 )
 target_compile_features(uart_bridge_node PUBLIC c_std_99 cxx_std_20)  # Require C99 and C++17
 
-target_include_directories(uart_bridge_node PUBLIC include)
+target_include_directories(uart_bridge_node PUBLIC
+  src
+)
 
 ament_target_dependencies(uart_bridge_node
   rclcpp

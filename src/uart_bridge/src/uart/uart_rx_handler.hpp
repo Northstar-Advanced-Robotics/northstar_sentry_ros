@@ -19,7 +19,7 @@ public:
 
     virtual UartMessage::MessageType get_type_id() = 0;
 
-    virtual void handle(const std::vector<uint8_t>& bytes) = 0;
+    virtual void handle(const std::vector<uint8_t>& bytes, long long rx_timestamp_us) = 0;
 };
 
 }  // namespace src::uart

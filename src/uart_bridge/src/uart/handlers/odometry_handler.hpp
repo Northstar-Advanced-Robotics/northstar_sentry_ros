@@ -20,7 +20,7 @@ public:
 
     UartMessage::MessageType get_type_id() override;
 
-    void handle(const std::vector<uint8_t>& bytes) override;
+    void handle(const std::vector<uint8_t>& bytes, long long rx_timestamp_us) override;
     // should parse the data by calling odomety_message.parse, and any other
     // logic/calculations if needed
 

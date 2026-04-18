@@ -36,6 +36,8 @@ public:
         std::map<UartMessage::MessageType, std::unique_ptr<src::uart::UartRxHandler>> handlers,
         bool isRxCRCEnforcementEnabled);
 
+    void close();
+
     void send(std::unique_ptr<src::uart::UartSendMessage> msg);
 
     void receive();
@@ -57,6 +59,8 @@ public:
     }
 
 private:
+    std::atomic<bool> is_running_{true};
+
     bool rxCrcEnabled;
 
     uint8_t txSeq = 0;

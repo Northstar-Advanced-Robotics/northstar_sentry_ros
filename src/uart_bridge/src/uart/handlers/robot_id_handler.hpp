@@ -2,22 +2,22 @@
 #define ALIVE_HANDLER_HPP
 #include <cstdint>
 
-#include "uart/messages/alive_message.hpp"
+#include "uart/messages/robot_id_message.hpp"
 #include "uart/uart_message.hpp"
 #include "uart/uart_rx_handler.hpp"
 
 namespace src::uart
 {
-class AliveHandler : public UartRxHandler
+class RobotIDHandler : public UartRxHandler
 {
 public:
-    AliveHandler(AliveMessage& msg);
+    RobotIDHandler(RobotIDMessage& msg);
 
     UartMessage::MessageType get_type_id() override;
 
     void handle(const std::vector<uint8_t>& bytes, long long rx_timestamp_us) override;
 
-    AliveMessage& alive_message;
+    RobotIDMessage& robot_id_message;
 };
 
 }  // namespace src::uart

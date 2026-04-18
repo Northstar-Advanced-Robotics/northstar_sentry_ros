@@ -6,7 +6,7 @@ AliveHandler::AliveHandler(AliveMessage& msg) : alive_message(msg) {}
 
 UartMessage::MessageType AliveHandler::get_type_id() { return UartMessage::MessageType::ALIVE; }
 
-void AliveHandler::handle(const std::vector<uint8_t>& bytes)
+void AliveHandler::handle(const std::vector<uint8_t>& bytes, long long rx_timestamp_us)
 {
     alive_message.parse(bytes);  // TODO make logic for if online
 }

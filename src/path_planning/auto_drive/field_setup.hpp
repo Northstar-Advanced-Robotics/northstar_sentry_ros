@@ -33,7 +33,7 @@ public:
         return FieldSetup(
             12.0f, // fieldRealSizeX
             8.0f,  // fieldRealSizeY
-            0.02f, // nodeSizeMeters
+            0.025f, // nodeSizeMeters
             { // obstacleBounds
                 { { -3.75015, -1.82147 }, { -3.58015, 1.20393 } },  // red big wall
                 { { -2.58045, -0.02147 }, { -2.41059, 2.00393 } },  // red small wall
@@ -50,11 +50,11 @@ public:
     static FieldSetup TestField()
     {
         return FieldSetup(
-            3.048f, // fieldRealSizeX
-            3.048f, // fieldRealSizeY
-            0.02f, // nodeSizeMeters
+            9.0f, // fieldRealSizeX
+            9.0f, // fieldRealSizeY
+            0.025f, // nodeSizeMeters
             { // obstacleBounds
-                { { -0.66f, 0.3048f }, { -0.3048f, 0.74 } },  // black/yellow box
+                //{ { -0.66f, 0.3048f }, { -0.3048f, 0.74 } },  // black/yellow box
             }
         );
     }

@@ -4,3 +4,5 @@ install
 src/tagslam
 src/flex_sync
 .cache
+.vscode
+tag_corners.txt

@@ -40,7 +40,7 @@ private:
     static const FieldSetup fieldSetup;
 
     static constexpr float sentryRadius = 0.34; // meters
-    static constexpr int nodeTolerance = 2; // nodes
+    static constexpr int nodeTolerance = 0; // nodes
     const int robotNodeRadius;
 
     std::vector<std::byte> obstacleGrid; 

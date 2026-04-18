@@ -2,30 +2,28 @@
 // for meassages with both implement
 // implement get_type_id with the meassages id, serialize: format into bytes
 
-#ifndef UART_AUTO_AIM_MESSAGE_HPP
-#define UART_AUTO_AIM_MESSAGE_HPP
+#ifndef UART_HEALTH_MESSAGE_HPP
+#define UART_HEALTH_MESSAGE_HPP
 
 #include <memory>
 
 #include "uart/uart_receive_message.hpp"
-#include "uart/uart_send_message.hpp"
 
 namespace src::uart
 {
-class AutoAimMessage : public UartSendMessage
+class HealthMessage : public UartReceiveMessage
 
 {
 public:
-    AutoAimMessage();
+    HealthMessage();
 
     UartMessage::MessageType get_type_id() override;
 
-    AutoAimMessage get_autoaim_message();
+    void parse(const std::vector<uint8_t>& msg) override;
 
-    std::vector<uint8_t> serialize() override;
+    HealthMessage get_health_message();
 
-    float yaw_error, pitch_error, distance;
-    uint16_t target_id;
+    uint16_t hp;
 };
 
 }  // namespace src::uart

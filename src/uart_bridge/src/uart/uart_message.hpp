@@ -14,7 +14,10 @@ public:
         ROBOT_ID = 2,
         ALIVE = 3,
         ODOMETRY = 4,
-        AUTO_PATH = 5
+        AUTO_PATH = 5,
+        HEALTH = 6,
+        REF_TURRET_DATA = 7
+
     };
 
     virtual MessageType get_type_id() = 0;

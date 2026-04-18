@@ -26,7 +26,8 @@ public:
 
     std::vector<uint8_t> serialize() override;
 
-    float vel_x, vel_y, roll, pitch, yaw, yaw_vel; // ,pos_x, pos_y, pos_z, , vel_z, , roll_vel, pitch_vel, yaw_vel;
+    uint32_t timestamp;
+    float vel_x, vel_y, roll, pitch, yaw; // pos_x, pos_y, pos_z, vel_z, roll_vel, pitch_vel, yaw_vel
 };
 
 }  // namespace src::uart
