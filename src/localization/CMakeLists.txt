@@ -7,9 +7,25 @@ project(localization)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(apriltag_msgs REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+
+add_executable(cov_filter_node src/cov_filter_node.cpp)
+
+ament_target_dependencies(cov_filter_node
+  rclcpp
+  nav_msgs
+  apriltag_msgs
+)
+
+install(TARGETS
+  cov_filter_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(DIRECTORY
   launch

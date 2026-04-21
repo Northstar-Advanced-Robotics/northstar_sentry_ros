@@ -1,3 +1,4 @@
+#include "uart/messages/vision_localization_message.hpp"
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/time.hpp>
@@ -32,6 +33,7 @@ std::atomic<long long> jetson_to_mcb_offset_us{0};
 class UartBridge : public rclcpp::Node {
 private: 
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr bezier_sub_;
+  // rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr vision_localization_sub_;
 
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr alive_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
@@ -45,6 +47,7 @@ private:
   src::uart::AutoAimMessage autoaim_msg;
   src::uart::AliveMessage alive_msg;
   src::uart::AutoPathMessage auto_path_msg;
+  // src::uart::VisionLocalizationMessage vision_localization_msg;
   
   std::unique_ptr<src::uart::Uart> uart_;
   
@@ -64,11 +67,17 @@ private:
     uart_->send(std::make_unique<src::uart::AutoPathMessage>(auto_path_msg));
   }
 
+  // void vision_localization_message_callback(nav_msgs::msg::Odometry::SharedPtr msg) {
+  //   vision_localization_msg.x = msg->pose.pose.position.x;
+  //   vision_localization_msg.y = msg->pose.pose.position.y;
+  //   uart_->send(std::make_unique<src::uart::VisionLocalizationMessage>(vision_localization_msg));
+  // }
+
   void publish_odom() {
       nav_msgs::msg::Odometry odom_msg_ros;
       odom_msg_ros.header.stamp = this->now();
       odom_msg_ros.header.frame_id = "odom";
-      odom_msg_ros.child_frame_id = "base_link";
+      odom_msg_ros.child_frame_id = "rig";
 
       double global_vx = odom_msg.vel_y;
       double global_vy = -odom_msg.vel_x;
@@ -118,6 +127,10 @@ public:
     bezier_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
       "/planner/bezier_curve", 10,
       std::bind(&UartBridge::auto_path_message_callback, this, std::placeholders::_1));
+
+    // vision_localization_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    //   "/odom/body_rig", 10,
+    //   std::bind(&UartBridge::vision_localization_message_callback, this, std::placeholders::_1));
 
     start();
   }

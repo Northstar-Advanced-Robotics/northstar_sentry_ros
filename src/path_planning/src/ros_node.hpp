@@ -26,7 +26,8 @@ public:
         position_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
             "/odom/body_rig", 10,
             [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
-                currentRobotWorldPos = Eigen::Vector2f(msg->pose.pose.position.x, msg->pose.pose.position.y); 
+                currentRobotWorldPos = Eigen::Vector2f(-msg->pose.pose.position.y, msg->pose.pose.position.x); 
+                hasRobotPos = true;
             });
         // health_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
         //     "/health", 10,
@@ -149,12 +150,11 @@ public:
 
         AutoPathing::CubicBezier currentBezier = calculateCurrentBezierToGoal();
 
-        if (currentBezier.end != publishedBezier.end)
+        if (currentBezier.end != publishedBezier.end && hasRobotPos)
         {
             this->publishBezierData(currentBezier);
         }
 
-        this->publishBezierData(currentBezier);
         this->publishBezierVisualizer(currentBezier, currentTime);
 
         if ((currentTime - lastGridPublishTime).seconds() > GRID_PUB_WAIT)
@@ -165,8 +165,8 @@ public:
 
     Eigen::Vector2f calculateWorldGoalPos()
     {
-        Eigen::Vector2f a = {1, 0};
-        Eigen::Vector2f b = {0, 0};
+        Eigen::Vector2f a = {0, 0};
+        Eigen::Vector2f b = {0, -1};
         float dist = 0.1f;
 
         if (currentWorldGoalPos == a)
@@ -181,8 +181,6 @@ public:
             if (distanceToGoal <= dist) { return a; }
             else { return b; }
         }
-
-        return {0, 0};
     }
 
     AutoPathing::CubicBezier calculateCurrentBezierToGoal()
@@ -213,6 +211,7 @@ private:
     Eigen::Vector2f currentWorldGoalPos;
     Eigen::Vector2i currentGridGoalPos;
 
+    bool hasRobotPos = false;
     Eigen::Vector2f currentRobotWorldPos;
 };
 

@@ -14,8 +14,6 @@ else
     -v="${HOME}/Docker/realsense_ws:/home/ubuntu/realsense_ws" \
     -v="${HOME}/.tar-installs:/devtools" \
     -v="${HOME}/.config/helix:/home/ubuntu/.config/helix" \
-    -v="${HOME}/.vscode-server:/home/ubuntu/.vscode-server" \
-    -v="${HOME}/.vscode-server:/root/.vscode-server" \
     -w="/home/ubuntu/realsense_ws" \
     --device=/dev/ttyTHS1 \
     --group-add dialout \

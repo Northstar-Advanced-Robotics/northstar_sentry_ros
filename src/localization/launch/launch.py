@@ -11,7 +11,8 @@ def generate_launch_description():
     cameras_config = os.path.join(pkg_share, 'config', 'cameras.yaml')
     tagslam_config = os.path.join(pkg_share, 'config', 'tagslam.yaml')
     camera_poses_config = os.path.join(pkg_share, 'config', 'camera_poses.yaml')
-    ekf_config = os.path.join(pkg_share, 'config', 'ekf.yaml')
+    ekf_local_config = os.path.join(pkg_share, 'config', 'ekf_local.yaml')
+    ekf_global_config = os.path.join(pkg_share, 'config', 'ekf_global.yaml')
       
     launch_nodes = []
 
@@ -53,13 +54,40 @@ def generate_launch_description():
         extra_arguments=[{'use_intra_process_comms' : True}],
     )
 
-    ekf_node = Node(
+    # ekf_node = Node(
+    #     package='robot_localization',
+    #     executable='ekf_node',
+    #     name='ekf_filter_node',
+    #     output='screen',
+    #     parameters=[ekf_config]
+    # )
+
+    ekf_local_node = Node(
         package='robot_localization',
         executable='ekf_node',
-        name='ekf_filter_node',
+        name='ekf_local_node',
         output='screen',
-        parameters=[ekf_config]
+        parameters=[ekf_local_config],
+        remappings=[('odometry/filtered', 'odometry/local')]
     )
+
+    # Global EKF (map -> odom)
+    ekf_global_node = Node(
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_global_node',
+        output='screen',
+        parameters=[ekf_global_config],
+        remappings=[('odometry/filtered', 'odometry/global')] # Prevents topic collision with local EKF
+    )
+
+    cov_filter = Node(
+        package="localization",
+        executable="cov_filter_node",
+        output="screen",
+        name="cov_filter",
+    )
+
 
     launch_nodes.extend([sync_and_detect, tagslam])
    
@@ -112,4 +140,4 @@ def generate_launch_description():
         output='both',
     )
 
-    return launch.LaunchDescription([container, uart_bridge, ekf_node])
+    return launch.LaunchDescription([container, uart_bridge, ekf_local_node, ekf_global_node, cov_filter])

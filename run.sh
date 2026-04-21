@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ "$USER" == 'northstar_agx' ]]; then
+  echo "run this inside the container"
+  exit 1
+fi
+
 if (("$#" != 1)); then 
   echo "You need to provide a package name"  
   exit 1

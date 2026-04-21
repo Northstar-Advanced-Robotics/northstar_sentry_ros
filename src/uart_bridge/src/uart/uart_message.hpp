@@ -16,8 +16,8 @@ public:
         ODOMETRY = 4,
         AUTO_PATH = 5,
         HEALTH = 6,
-        REF_TURRET_DATA = 7
-
+        REF_TURRET_DATA = 7,
+        VISION_LOCALIZION = 8
     };
 
     virtual MessageType get_type_id() = 0;

@@ -6,7 +6,7 @@
 
     enable_color: true
 
-    rgb_camera.color_format: "Y8"
+    rgb_camera.color_format: "RGB8"
     
     rgb_camera.color_profile: 1920x1080x30
 
