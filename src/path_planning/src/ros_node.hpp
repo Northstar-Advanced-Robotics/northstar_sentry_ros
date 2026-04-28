@@ -1,6 +1,10 @@
 #ifndef ROS_VISUALIZER_HPP
 #define ROS_VISUALIZER_HPP
 
+#include <chrono>
+#include <memory>
+#include <vector>
+
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <nav_msgs/msg/path.hpp>
@@ -8,34 +12,30 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <eigen3/Eigen/Dense>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
+
+// Correct TF2 headers for ROS 2 Jazzy
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "auto_drive/theta_star.hpp"
 #include "auto_drive/cubic_bezier.hpp"
 #include "auto_drive/cubic_bezier_fitter.hpp"
-#include "std_msgs/msg/float32_multi_array.hpp"
+
+using namespace std::chrono_literals;
 
 namespace src::viz {
 
 class RosVisualizer : public rclcpp::Node {
 public:
     RosVisualizer() : Node("path_planner_visualizer") {
-        position_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odom/body_rig", 10,
-            [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
-                currentRobotWorldPos = Eigen::Vector2f(-msg->pose.pose.position.y, msg->pose.pose.position.x); 
-                hasRobotPos = true;
-            });
-        // health_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
-        //     "/health", 10,
-        //     [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
-        //         // Store the clicked point (World Coordinates)
-        //         current_goal_ = Eigen::Vector2f(msg->point.x, msg->point.y);
-        //         RCLCPP_INFO(this->get_logger(), "Goal Updated: x=%f, y=%f", msg->point.x, msg->point.y);
-        //     });
+        // Initialize TF2 Buffer and Listener
+        tf2_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+        tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
         grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("planner/map", 1);
         bezier_data_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("planner/bezier_curve", 10);
@@ -45,24 +45,62 @@ public:
 
         thetaStar = new src::AutoPathing::ThetaStar();
         lastGridPublishTime = this->now();
+
+        // Timer to call the transform callback periodically (approx 30Hz)
+        odom_timer_ = this->create_wall_timer(
+            33ms, std::bind(&RosVisualizer::transform_callback, this));
     }
 
-    AutoPathing::CubicBezier translateBezierFromGridToWorld(AutoPathing::CubicBezier bezier)
-    {
-        return AutoPathing::CubicBezier(thetaStar->ConvertGridToWorld(bezier.start), thetaStar->ConvertGridToWorld(bezier.end), thetaStar->ConvertGridToWorld(bezier.controlEnd), thetaStar->ConvertGridToWorld(bezier.controlStart));
+    void transform_callback() {
+        geometry_msgs::msg::TransformStamped transform;
+
+        try {
+            // Lookup the latest transform from map to rig
+            transform = tf2_buffer_->lookupTransform(
+                "map", "rig",
+                tf2::TimePointZero
+            );
+
+            double x_offset = transform.transform.translation.x;
+            double y_offset = transform.transform.translation.y;
+
+            // Map TF to internal state (maintaining your specific coordinate mapping)
+            currentRobotWorldPos = Eigen::Vector2f(-y_offset, x_offset);
+            hasRobotPos = true;
+
+            RCLCPP_DEBUG(this->get_logger(), "Robot Pos Updated: X: %f, Y: %f",
+                        currentRobotWorldPos.x(), currentRobotWorldPos.y());
+
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                 "Could not get transform: %s", ex.what());
+        }
     }
 
-    void publishBezierData(AutoPathing::CubicBezier& bezierToPub)
-    {
+    AutoPathing::CubicBezier translateBezierFromGridToWorld(AutoPathing::CubicBezier bezier) {
+        return AutoPathing::CubicBezier(
+            thetaStar->ConvertGridToWorld(bezier.start), 
+            thetaStar->ConvertGridToWorld(bezier.end), 
+            thetaStar->ConvertGridToWorld(bezier.controlEnd), 
+            thetaStar->ConvertGridToWorld(bezier.controlStart)
+        );
+    }
+
+    void publishBezierData(AutoPathing::CubicBezier& bezierToPub) {
         publishedBezier = bezierToPub;
 
-        std_msgs::msg::Float32MultiArray arr = std_msgs::msg::Float32MultiArray();
-        arr.data = {bezierToPub.start.x(), bezierToPub.start.y(), bezierToPub.end.x(), bezierToPub.end.y(), bezierToPub.controlStart.x(), bezierToPub.controlStart.y(), bezierToPub.controlEnd.x(), bezierToPub.controlEnd.y(), bezierToPub.length};
+        std_msgs::msg::Float32MultiArray arr;
+        arr.data = {
+            bezierToPub.start.x(), bezierToPub.start.y(), 
+            bezierToPub.end.x(), bezierToPub.end.y(), 
+            bezierToPub.controlStart.x(), bezierToPub.controlStart.y(), 
+            bezierToPub.controlEnd.x(), bezierToPub.controlEnd.y(), 
+            bezierToPub.length
+        };
         bezier_data_pub_->publish(arr);
     }
 
-    void publishBezierVisualizer(AutoPathing::CubicBezier& currentBezier, rclcpp::Time& currentTime)
-    {
+    void publishBezierVisualizer(AutoPathing::CubicBezier& currentBezier, rclcpp::Time& currentTime) {
         visualization_msgs::msg::Marker bezier_published_marker;
         bezier_published_marker.header.frame_id = "map";
         bezier_published_marker.header.stamp = currentTime;
@@ -76,7 +114,6 @@ public:
         for (int i = 0; i < BEZIER_VIS_SAMPLES; i++) {
             float t = (float)i / (float)(BEZIER_VIS_SAMPLES - 1);
             Eigen::Vector2f pt = publishedBezier.Evaluate(t);
-            
             geometry_msgs::msg::Point p;
             p.x = pt.x(); p.y = pt.y(); p.z = 0.1;
             bezier_published_marker.points.push_back(p);
@@ -95,7 +132,6 @@ public:
         for (int i = 0; i < BEZIER_VIS_SAMPLES; i++) {
             float t = (float)i / (float)(BEZIER_VIS_SAMPLES - 1);
             Eigen::Vector2f pt = currentBezier.Evaluate(t);
-            
             geometry_msgs::msg::Point p;
             p.x = pt.x(); p.y = pt.y(); p.z = 0.1;
             bezier_current_marker.points.push_back(p);
@@ -105,22 +141,19 @@ public:
         bezier_current_visualizer_pub_->publish(bezier_current_marker);
     }
 
-    void publishGrid(rclcpp::Time& currentTime)
-    {
+    void publishGrid(rclcpp::Time& currentTime) {
         int gridSizeX = thetaStar->GetSizeX();
         int gridSizeY = thetaStar->GetSizeY();
-
         float realSizeX = thetaStar->GetRealSizeX();
-        float realSizeY = thetaStar->GetRealSizeY();
 
         nav_msgs::msg::OccupancyGrid grid_msg;
         grid_msg.header.stamp = currentTime;
         grid_msg.header.frame_id = "map";
-        grid_msg.info.resolution = realSizeX/gridSizeX;
+        grid_msg.info.resolution = realSizeX / gridSizeX;
         grid_msg.info.width = gridSizeX;
         grid_msg.info.height = gridSizeY;
         grid_msg.info.origin.position.x = -realSizeX / 2.0f;
-        grid_msg.info.origin.position.y = -realSizeY / 2.0f;
+        grid_msg.info.origin.position.y = -thetaStar->GetRealSizeY() / 2.0f;
         grid_msg.info.origin.orientation.w = 1.0;
 
         grid_msg.data.resize(grid_msg.info.width * grid_msg.info.height);
@@ -135,73 +168,70 @@ public:
                 else grid_msg.data[index] = 20;
             }
         }
-
         grid_pub_->publish(grid_msg);
         lastGridPublishTime = currentTime;
     }
 
-    void update()
-    {
-        rclcpp::Time currentTime = this->now();
+    void update() {
+        if (!hasRobotPos) return;
 
+        rclcpp::Time currentTime = this->now();
         thetaStar->updateDynamicObstacles();
         currentWorldGoalPos = calculateWorldGoalPos();
         currentGridGoalPos = thetaStar->ConvertWorldToGrid(currentWorldGoalPos);
 
         AutoPathing::CubicBezier currentBezier = calculateCurrentBezierToGoal();
 
-        if (currentBezier.end != publishedBezier.end && hasRobotPos)
-        {
+        if (currentBezier.end != publishedBezier.end) {
             this->publishBezierData(currentBezier);
         }
 
         this->publishBezierVisualizer(currentBezier, currentTime);
 
-        if ((currentTime - lastGridPublishTime).seconds() > GRID_PUB_WAIT)
-        {
+        if ((currentTime - lastGridPublishTime).seconds() > GRID_PUB_WAIT) {
             this->publishGrid(currentTime);
         }
     }
 
-    Eigen::Vector2f calculateWorldGoalPos()
-    {
-        Eigen::Vector2f a = {0, 0};
-        Eigen::Vector2f b = {0, -1};
+    Eigen::Vector2f calculateWorldGoalPos() {
+        Eigen::Vector2f a = {0.0f, 0.0f};
+        Eigen::Vector2f b = {0.0f, -1.0f};
         float dist = 0.1f;
 
-        if (currentWorldGoalPos == a)
-        {
-            float distanceToGoal = (a - currentRobotWorldPos).norm();
-            if (distanceToGoal <= dist) { return b; }
-            else { return a; }
-        }
-        else if (currentWorldGoalPos == b)
-        {
-            float distanceToGoal = (b - currentRobotWorldPos).norm();
-            if (distanceToGoal <= dist) { return a; }
-            else { return b; }
+        if (currentWorldGoalPos == a) {
+            if ((a - currentRobotWorldPos).norm() <= dist) return b;
+            return a;
+        } else {
+            if ((b - currentRobotWorldPos).norm() <= dist) return a;
+            return b;
         }
     }
 
-    AutoPathing::CubicBezier calculateCurrentBezierToGoal()
-    {
-        std::vector<Eigen::Vector2i> fullGridPath = thetaStar->FindPath(thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()}), currentGridGoalPos);
-        std::vector<Eigen::Vector2i> gridPathUntilConcavityFlip = std::vector<Eigen::Vector2i>(fullGridPath.begin(), fullGridPath.begin() + src::AutoPathing::CubicBezierFitter::findFirstConcavityFlip(fullGridPath));
-        std::vector<Eigen::Vector2f> populatedPathUntilConcavityFlip = src::AutoPathing::CubicBezierFitter::PopulatePointsNew(gridPathUntilConcavityFlip);
+    AutoPathing::CubicBezier calculateCurrentBezierToGoal() {
+        std::vector<Eigen::Vector2i> fullGridPath = thetaStar->FindPath(
+            thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()}), 
+            currentGridGoalPos
+        );
+        
+        size_t flipIdx = src::AutoPathing::CubicBezierFitter::findFirstConcavityFlip(fullGridPath);
+        std::vector<Eigen::Vector2i> gridPathUntilConcavityFlip(fullGridPath.begin(), fullGridPath.begin() + flipIdx);
+        std::vector<Eigen::Vector2f> populatedPath = src::AutoPathing::CubicBezierFitter::PopulatePointsNew(gridPathUntilConcavityFlip);
 
-        return translateBezierFromGridToWorld(src::AutoPathing::CubicBezierFitter::FitCubic(populatedPathUntilConcavityFlip, 30, 1, .001));
+        return translateBezierFromGridToWorld(src::AutoPathing::CubicBezierFitter::FitCubic(populatedPath, 30, 1, .001));
     }
 
 private:
     const int BEZIER_VIS_SAMPLES = 24;
     const float GRID_PUB_WAIT = 3.0f;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr position_sub_;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr health_sub_;
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr bezier_data_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_published_visualizer_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_current_visualizer_pub_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_pub_;
+
+    std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
+    rclcpp::TimerBase::SharedPtr odom_timer_;
 
     src::AutoPathing::ThetaStar* thetaStar;
     src::AutoPathing::CubicBezier publishedBezier;

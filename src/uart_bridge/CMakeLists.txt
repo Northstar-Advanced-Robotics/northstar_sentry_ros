@@ -10,7 +10,13 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
+rosidl_generate_interfaces(uart_bridge
+  "msg/AutoAim.msg"
+)
+
+rosidl_get_typesupport_target(cpp_typesupport_target uart_bridge "rosidl_typesupport_cpp")
 
 add_executable(uart_bridge_node
   src/uart_bridge_node.cpp
@@ -23,12 +29,13 @@ add_executable(uart_bridge_node
   src/uart/uart.cpp
   src/uart/crc/crc.cpp
 )
+
 target_compile_features(uart_bridge_node PUBLIC c_std_99 cxx_std_20)  # Require C99 and C++17
+target_include_directories(uart_bridge_node PUBLIC src)
 
-target_include_directories(uart_bridge_node PUBLIC
-  src
+target_link_libraries(uart_bridge_node
+  ${cpp_typesupport_target}
 )
-
 ament_target_dependencies(uart_bridge_node
   rclcpp
   std_msgs
