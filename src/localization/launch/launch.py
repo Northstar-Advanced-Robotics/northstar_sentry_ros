@@ -7,12 +7,15 @@ from launch_ros.descriptions import ComposableNode
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('localization')
+
     camera_config = os.path.join(pkg_share, 'config', 'camera.yaml')
     cameras_config = os.path.join(pkg_share, 'config', 'cameras.yaml')
     tagslam_config = os.path.join(pkg_share, 'config', 'tagslam.yaml')
     camera_poses_config = os.path.join(pkg_share, 'config', 'camera_poses.yaml')
     ekf_local_config = os.path.join(pkg_share, 'config', 'ekf_local.yaml')
     ekf_global_config = os.path.join(pkg_share, 'config', 'ekf_global.yaml')
+    arducam_config = os.path.join(pkg_share, 'config', 'arducam.yaml')
+
       
     launch_nodes = []
 
@@ -27,6 +30,20 @@ def generate_launch_description():
         executable="uart_bridge_node",
         output="screen",
         name="uart_bridge",
+    )
+
+    detector = Node(
+        package='detector',
+        executable='detector',
+        output='screen',
+        name='detector_node',
+    )
+
+    path_planning = Node(
+        package='path_planning',
+        executable='path_planning_node',
+        output='screen',
+        name='path_planning',
     )
 
     sync_and_detect = ComposableNode(
@@ -88,6 +105,14 @@ def generate_launch_description():
         name="cov_filter",
     )
 
+    arducam = Node(
+        package='v4l2_camera',
+        executable='v4l2_camera_node',
+        name='arducam_node',
+        output='screen',
+        parameters=[arducam_config],
+        # remappings=[('odometry/filtered', 'odometry/global')] # Prevents topic collision with local EKF
+    )
 
     launch_nodes.extend([sync_and_detect, tagslam])
    
@@ -140,4 +165,11 @@ def generate_launch_description():
         output='both',
     )
 
-    return launch.LaunchDescription([container, uart_bridge, ekf_local_node, ekf_global_node, cov_filter])
+    return launch.LaunchDescription([container,
+                                     uart_bridge,
+                                     arducam,
+                                     # detector,
+                                     path_planning,
+                                     ekf_local_node,
+                                     ekf_global_node,
+                                     cov_filter])

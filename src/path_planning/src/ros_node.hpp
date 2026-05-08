@@ -16,6 +16,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <eigen3/Eigen/Dense>
 #include <std_msgs/msg/float32_multi_array.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 
 // Correct TF2 headers for ROS 2 Jazzy
 #include <tf2_ros/buffer.h>
@@ -42,6 +43,9 @@ public:
 
         bezier_published_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/published_bezier", 10);
         bezier_current_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
+
+        goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&RosVisualizer::goal_callback, this, std::placeholders::_1)
+);
 
         thetaStar = new src::AutoPathing::ThetaStar();
         lastGridPublishTime = this->now();
@@ -194,17 +198,7 @@ public:
     }
 
     Eigen::Vector2f calculateWorldGoalPos() {
-        Eigen::Vector2f a = {0.0f, 0.0f};
-        Eigen::Vector2f b = {0.0f, -1.0f};
-        float dist = 0.1f;
-
-        if (currentWorldGoalPos == a) {
-            if ((a - currentRobotWorldPos).norm() <= dist) return b;
-            return a;
-        } else {
-            if ((b - currentRobotWorldPos).norm() <= dist) return a;
-            return b;
-        }
+        return currentWorldGoalPos;
     }
 
     AutoPathing::CubicBezier calculateCurrentBezierToGoal() {
@@ -228,6 +222,15 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_published_visualizer_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_current_visualizer_pub_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_pub_;
+
+    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
+
+    void goal_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+        currentWorldGoalPos = Eigen::Vector2f(-msg->pose.position.y, msg->pose.position.x);
+
+        RCLCPP_INFO(this->get_logger(), "New Goal Set: X: %f, Y: %f", 
+                    currentWorldGoalPos.x(), currentWorldGoalPos.y());
+    }
 
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;

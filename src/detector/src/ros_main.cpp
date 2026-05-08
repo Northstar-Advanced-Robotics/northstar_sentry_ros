@@ -2,6 +2,8 @@
 #include <functional>
 #include <memory>
 #include <algorithm>
+#include <deque>
+#include <mutex>
 
 #include "geometry_msgs/msg/point.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -22,11 +24,6 @@
 #include <rclcpp/timer.hpp>
 #include <rclcpp/utilities.hpp>
 
-// Message Filter Headers for Synchronization
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <message_filters/synchronizer.h>
-
 #include "camera/camera.hpp"
 #include "detector.hpp"
 #include "pf_params.hpp"
@@ -38,16 +35,15 @@ std::atomic<long long> jetson_to_mcb_offset_us{0};
 
 class DetectorNode : public rclcpp::Node {
 private:
-    // Sync Policy Definition (Image and Odometry)
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, nav_msgs::msg::Odometry> SyncPolicy;
-    
-    // Message Filter Subscribers
-    message_filters::Subscriber<sensor_msgs::msg::Image> image_sub_;
-    message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_;
-    std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
-
-    rclcpp::Publisher<uart_bridge::msg::AutoAim>::SharedPtr autoaim_pub_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_;
+    rclcpp::Publisher<uart_bridge::msg::AutoAim>::SharedPtr autoaim_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
+
+    // Odometry Buffer and Mutex for thread safety
+    std::deque<nav_msgs::msg::Odometry::SharedPtr> odom_buffer_;
+    std::mutex odom_mutex_;
 
     double dt;
     std::chrono::time_point<std::chrono::steady_clock> last_time;
@@ -62,8 +58,8 @@ private:
     bool recievedCameraInfo = false;
 
     void info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr camInfo);
-    void sync_callback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg, 
-                       const nav_msgs::msg::Odometry::ConstSharedPtr& odom_msg);
+    void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg);
+    void image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg);
 
 public:
     DetectorNode() : Node("detector") {
@@ -71,20 +67,19 @@ public:
             "autoaim", rclcpp::SensorDataQoS());
 
         camera_info_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-            "/camera/camera_info", 10,
+            "/camera_info", 10,
             std::bind(&DetectorNode::info_callback, this, std::placeholders::_1));
 
-        // 1. Initialize message filter subscribers
-        // Use rmw_qos_profile_sensor_data if your camera is publishing with SensorDataQoS
-        image_sub_.subscribe(this, "/front/camera/color/image_raw");
-        odom_sub_.subscribe(this, "odometry");
+        image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+            "/image_raw", rclcpp::SensorDataQoS(),
+            std::bind(&DetectorNode::image_callback, this, std::placeholders::_1));
 
-        // 2. Initialize the Synchronizer (Queue size of 10)
-        sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
-            SyncPolicy(10), image_sub_, odom_sub_);
+        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            "uart/odometry", rclcpp::SensorDataQoS(),
+            std::bind(&DetectorNode::odometry_callback, this, std::placeholders::_1));
 
-        // 3. Register the synchronized callback
-        sync_->registerCallback(std::bind(&DetectorNode::sync_callback, this, std::placeholders::_1, std::placeholders::_2));
+        image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
+            "detection_image", rclcpp::SensorDataQoS());
 
         l_params = {0.04, 0.4, 35.0, 0.7};
         a_params = {0.7, 0.8, 3.2, 3.2, 5.5, 35.0};
@@ -93,37 +88,92 @@ public:
     }
 };
 
+const std::array<double, 9> K = {608.15084105623157,0.0,457.71223189128261,0.0,609.63354694069642,317.6449703796784,0.0,0.0,1.0};
+const std::vector<double> dist_coeffs = {
+        -0.0818101598070618,      // k1
+        -0.044298378963030155,    // k2
+        0.00047792942060084727,   // p1
+        -0.00029737171894225013,  // p2
+        0.027074428106673747      // k3
+    };
+
+
 void DetectorNode::info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr camInfo) {
     if (!recievedCameraInfo) {
         recievedCameraInfo = true;
-        intrinsics.K = camInfo->k;
-        intrinsics.dist_coeffs = camInfo->d;
+        // intrinsics.K = camInfo->k;
+        // intrinsics.dist_coeffs = camInfo->d;
+        //NOTE: hardcoded intrinsics for arducam
+        intrinsics.K = K;
+        intrinsics.dist_coeffs = dist_coeffs;
         pnp_solver = std::make_unique<rm_auto_aim::PnPSolver>(
             intrinsics.K, intrinsics.dist_coeffs);
         detector = std::make_unique<rm_auto_aim::Detector>(
             PF::pfParams, pnp_solver.get(), 150, 0, l_params, a_params);
+        detector->classifier = std::make_unique<rm_auto_aim::NumberClassifier>(
+            "src/detector/detector_submodule/model/mlp.onnx",
+            "src/detector/detector_submodule/model/label.txt",
+            0.7,
+            std::vector<std::string>{"negative"});
 
         RCLCPP_INFO(this->get_logger(), "Camera info received. Detector initialized.");
     }
 }
 
-void DetectorNode::sync_callback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg, 
-                                 const nav_msgs::msg::Odometry::ConstSharedPtr& odom_msg) 
-{
+void DetectorNode::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
+    std::lock_guard<std::mutex> lock(odom_mutex_);
+    odom_buffer_.push_back(odom_msg);
+
+    // Keep buffer size manageable (e.g., last 100 messages)
+    if (odom_buffer_.size() > 100) {
+        odom_buffer_.pop_front();
+    }
+}
+
+void DetectorNode::image_callback(const sensor_msgs::msg::Image::SharedPtr image_msg) {
     if (!recievedCameraInfo || !detector) {
         return;
     }
 
-    // 1. Calculate orientation from the synchronized odometry message
-    double w = odom_msg->pose.pose.orientation.w;
-    double x = odom_msg->pose.pose.orientation.x;
-    double y = odom_msg->pose.pose.orientation.y;
-    double z = odom_msg->pose.pose.orientation.z;
+    nav_msgs::msg::Odometry::SharedPtr closest_odom;
+
+    // 1. Find the closest odometry message in the buffer
+    {
+        std::lock_guard<std::mutex> lock(odom_mutex_);
+        if (odom_buffer_.empty()) {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Odometry buffer empty, dropping frame.");
+            return;
+        }
+
+        auto img_time = rclcpp::Time(image_msg->header.stamp).nanoseconds();
+        auto closest_it = odom_buffer_.begin();
+        long long min_diff = std::abs(img_time - rclcpp::Time((*closest_it)->header.stamp).nanoseconds());
+
+        for (auto it = odom_buffer_.begin(); it != odom_buffer_.end(); ++it) {
+            long long diff = std::abs(img_time - rclcpp::Time((*it)->header.stamp).nanoseconds());
+            if (diff < min_diff) {
+                min_diff = diff;
+                closest_it = it;
+            }
+        }
+
+        closest_odom = *closest_it;
+        
+        // Optional cleanup: erase messages older than the closest one to prevent buffer bloating
+        // We keep the closest one in case the next image is also very close to it.
+        odom_buffer_.erase(odom_buffer_.begin(), closest_it);
+    }
+
+    // 2. Calculate orientation from the matched odometry message
+    double w = closest_odom->pose.pose.orientation.w;
+    double x = closest_odom->pose.pose.orientation.x;
+    double y = closest_odom->pose.pose.orientation.y;
+    double z = closest_odom->pose.pose.orientation.z;
     
     gimbal_state.yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
     gimbal_state.pitch = std::asin(2.0 * (w * y - z * x));
 
-    // 2. Process Timing
+    // 3. Process Timing
     auto now = std::chrono::steady_clock::now();
     double dt = std::chrono::duration<double>(now - last_time).count();
     last_time = now;
@@ -132,7 +182,7 @@ void DetectorNode::sync_callback(const sensor_msgs::msg::Image::ConstSharedPtr& 
         dt = 0.0166; // Default to ~60fps expected time
     }
 
-    // 3. Convert ROS Image to OpenCV Mat
+    // 4. Convert ROS Image to OpenCV Mat
     cv_bridge::CvImagePtr cv_ptr;
     try {
         cv_ptr = cv_bridge::toCvCopy(*image_msg, sensor_msgs::image_encodings::BGR8);
@@ -142,7 +192,7 @@ void DetectorNode::sync_callback(const sensor_msgs::msg::Image::ConstSharedPtr& 
     }
     cv::Mat img = cv_ptr->image;
 
-    // 4. Horizon Cropping Logic
+    // 5. Horizon Cropping Logic
     int y_crop = 0;
     double fy = intrinsics.K[4];
     double cy = intrinsics.K[5];
@@ -155,24 +205,38 @@ void DetectorNode::sync_callback(const sensor_msgs::msg::Image::ConstSharedPtr& 
     int safety_buffer = 15;
     y_crop = std::max(0, y_horizon - safety_buffer);
 
-    if (y_crop >= height) {
-        // Prevent passing an empty Mat to detector, which causes OpenCV assertions
-        return; 
-    } 
-    else {
-        cv::Rect roi(0, y_crop, width, height - y_crop);
-        img = img(roi);
-    }
+    // if (y_crop >= height) {
+    //     // Prevent passing an empty Mat to detector, which causes OpenCV assertions
+    //     RCLCPP_INFO(this->get_logger(), "Cropped everthing");
+    //     return; 
+    // } 
+    // else {
+    //     cv::Rect roi(0, y_crop, width, height - y_crop);
+    //     img = img(roi);
+    // }
 
-    if (pnp_solver) {
-        pnp_solver->setCropOffset(y_crop);
-    }
+    // if (pnp_solver) {
+    //     pnp_solver->setCropOffset(y_crop);
+    // }
 
-    // 5. Run Detection
+    // 6. Run Detection
+    // std::cout<< dt << '\n';
     detector->run_detection(img, gimbal_state, dt);
 
-    // 6. Extract Data and Publish
+    // 7. Extract Data and Publish
     auto auto_aim_data = detector->getAutoAimData();
+
+    // Get detector feedback image and publish it
+    cv::Mat detector_feedback = detector->getDetectorFeedback();
+
+    cv_bridge::CvImage img_bridge;
+    sensor_msgs::msg::Image ros_image; 
+    std_msgs::msg::Header header; 
+    header.frame_id = "camera_frame"; 
+    img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::BGR8, detector_feedback);
+    img_bridge.toImageMsg(ros_image);
+
+    image_pub_->publish(ros_image);
 
     RCLCPP_DEBUG(this->get_logger(), "autoaim_topic_sent");
 
@@ -184,7 +248,7 @@ void DetectorNode::sync_callback(const sensor_msgs::msg::Image::ConstSharedPtr& 
 
     autoaim_pub_->publish(mymsg); 
 
-    // 7. Calculate and print FPS
+    // 8. Calculate and print FPS
     static double accumulated_dt = 0.0;
     static int frame_count = 0;
 

@@ -1,5 +1,5 @@
 ARG ROS_DISTRO=jazzy
-FROM nvidia/cuda:13.0.3-cudnn-devel-ubuntu24.04
+FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
 
 SHELL ["/bin/bash", "-c"]
 
@@ -32,11 +32,13 @@ RUN apt-get update -y && \
   clangd \
   ros-${ROS_DISTRO}-librealsense2 \
   ros-${ROS_DISTRO}-apriltag-ros \
+  ros-${ROS_DISTRO}-v4l2-camera \
   libfastcdr-dev \
   libopencv-dev \
   bash-completion \
   python3-argcomplete \
-  ninja-build  
+  ninja-build \
+  gdb 
 
 RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
   echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> /home/ubuntu/.bashrc && \

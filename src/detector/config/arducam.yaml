@@ -1,0 +1,13 @@
+/arducam_node:
+  ros_parameters:
+    pixel_format: YUYV
+    video_device: "/dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_20250617_0001-video-index0"
+    image_size: [960, 600]
+
+    auto_exposure: false
+    brightness: 0
+    contrast: 10
+    saturation: 10
+    white_balance_temperature: 3300
+    gain: 168
+    exposure_time_absolute: 83 

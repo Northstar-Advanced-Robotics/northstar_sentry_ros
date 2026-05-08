@@ -6,6 +6,7 @@ else
   docker run -it --rm --net=host --ipc=host --pid=host --privileged \
     -e="DISPLAY" -e="TERM" -e="QT_X11_NO_MITSHM=1" -e="COLORTERM" \
     --gpus all \
+    --group-add video \
     -e="NVIDIA_DRIVER_CAPABILITIES"=all \
     -v="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
     -v="${HOME}/.Xauthority:/home/ubuntu/.Xauthority" \
