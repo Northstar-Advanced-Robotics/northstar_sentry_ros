@@ -211,7 +211,7 @@ void Uart::receive()
             {
                 // Grab the Jetson arrival time as close to extraction as possible
                 long long rx_time_us = std::chrono::duration_cast<std::chrono::microseconds>(
-                                           std::chrono::steady_clock::now().time_since_epoch())
+                                           std::chrono::system_clock::now().time_since_epoch())
                                            .count();
 
                 // Extract just the payload data (skip Header(5) + Type(2), end before CRC16(2))
@@ -221,7 +221,7 @@ void Uart::receive()
             }
             else
             {
-                std::cerr << "No handler for msg type: " << rawMsgType << std::endl;
+                // std::cerr << "No handler for msg type: " << rawMsgType << std::endl;
             }
         }
     }

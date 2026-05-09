@@ -111,7 +111,6 @@ def generate_launch_description():
         name='arducam_node',
         output='screen',
         parameters=[arducam_config],
-        # remappings=[('odometry/filtered', 'odometry/global')] # Prevents topic collision with local EKF
     )
 
     launch_nodes.extend([sync_and_detect, tagslam])
@@ -168,7 +167,7 @@ def generate_launch_description():
     return launch.LaunchDescription([container,
                                      uart_bridge,
                                      arducam,
-                                     # detector,
+                                     detector,
                                      path_planning,
                                      ekf_local_node,
                                      ekf_global_node,

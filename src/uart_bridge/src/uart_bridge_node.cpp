@@ -94,7 +94,15 @@ private:
 
     void publish_odom() {
         nav_msgs::msg::Odometry odom_msg_ros;
-        odom_msg_ros.header.stamp = this->now();
+
+        long long mcb_generation_time_us = odom_msg.timestamp;
+
+        long long offset_us = jetson_to_mcb_offset_us.load();
+        long long true_jetson_time_us = mcb_generation_time_us + offset_us;
+
+        rclcpp::Time true_ros_time(true_jetson_time_us * 1000);
+
+        odom_msg_ros.header.stamp = true_ros_time;
         odom_msg_ros.header.frame_id = "odom";
         odom_msg_ros.child_frame_id = "rig";
 
@@ -176,10 +184,10 @@ private:
             // Do your logic here
             // (e.g., send velocity
             // commands)
-            RCLCPP_INFO(this->get_logger(),
-                        "Current Offset: "
-                        "X: %f, Y: %f",
-                        x_offset, y_offset);
+            // RCLCPP_INFO(this->get_logger(),
+            //             "Current Offset: "
+            //             "X: %f, Y: %f",
+            //             x_offset, y_offset);
 
         } catch (const tf2::TransformException &ex) {
             // It's normal for this
@@ -207,7 +215,7 @@ public:
                           std::placeholders::_1));
 
         autoaim_sub_ = this->create_subscription<uart_bridge::msg::AutoAim>(
-            "autoaim", 10,
+            "/autoaim", 10,
             std::bind(&UartBridge::autoaim_callback, this,
                       std::placeholders::_1));
 
@@ -274,7 +282,7 @@ public:
         });
 
         timer_ = this->create_wall_timer(
-            33ms, std::bind(&UartBridge::publish_odom, this));
+            2ms, std::bind(&UartBridge::publish_odom, this));
     }
 };
 
