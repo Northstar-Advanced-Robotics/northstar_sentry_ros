@@ -161,7 +161,7 @@ def generate_launch_description():
         package='rclcpp_components',
         executable='component_container',
         composable_node_descriptions=launch_nodes,
-        output='both',
+        output='log',
     )
 
     return launch.LaunchDescription([container,

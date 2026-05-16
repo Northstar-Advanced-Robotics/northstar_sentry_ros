@@ -8,6 +8,8 @@ else
     --gpus all \
     --group-add video \
     -e="NVIDIA_DRIVER_CAPABILITIES"=all \
+    -e="FASTRTPS_DEFAULT_PROFILES_FILE"=/opt/ros/fastdds.xml \
+    -v="$HOME/Docker/realsense_ws/fastdds.xml:/opt/ros/fastdds.xml" \
     -v="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
     -v="${HOME}/.Xauthority:/home/ubuntu/.Xauthority" \
     -v="/dev:/dev" \

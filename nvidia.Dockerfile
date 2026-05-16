@@ -46,3 +46,4 @@ RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
   register-python-argcomplete colcon > /etc/bash_completion.d/colcon 
 
 ENV PATH="/devtools:${PATH}"
+ENV ROS_LOG_DIR="/home/ubuntu/realsense_ws/logs"

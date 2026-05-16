@@ -5,6 +5,8 @@ cam0:
   distortion_coeffs: [0, 0, 0, 0, 0]
   resolution: [1920, 1080]
   image_topic: /front/camera/color/image_raw
+  #for infra1 detecting
+  # image_topic: /front/camera/infra1/image_rect_raw
   # image_transport: raw
   tag_topic: /cam_sync/cam_0/detector/tags
   tag_detector: umich
