@@ -15,8 +15,6 @@ else
     -v="/dev:/dev" \
     -v="/run/udev:/run/udev:ro" \
     -v="${HOME}/Docker/realsense_ws:/home/ubuntu/realsense_ws" \
-    -v="${HOME}/.tar-installs:/devtools" \
-    -v="${HOME}/.config/helix:/home/ubuntu/.config/helix" \
     -w="/home/ubuntu/realsense_ws" \
     --device=/dev/ttyTHS1 \
     --group-add dialout \
@@ -24,5 +22,7 @@ else
     --userns=host \
     --user=$(id -u):$(id -g) \
     --name="ros-container" \
+    -v="${HOME}/.tar-installs:/devtools" \
+    -v="${HOME}/.config/helix:/home/ubuntu/.config/helix" \
     ros:nvidia bash -i
 fi

@@ -25,20 +25,20 @@ RUN apt-get update && apt-get upgrade -y && \
     ros-${ROS_DISTRO}-apriltag-detector-umich  \
     ros-${ROS_DISTRO}-ament-clang-format  \
     ros-${ROS_DISTRO}-robot-localization \
-    libboost-all-dev  
+    libboost-all-dev  \
+    libasio-dev \
+    clangd \
+    ros-${ROS_DISTRO}-librealsense2 \
+    ros-${ROS_DISTRO}-apriltag-ros \
+    ros-${ROS_DISTRO}-v4l2-camera \
+    libfastcdr-dev \
+    libopencv-dev \
+    ninja-build \
+    gdb 
 
 RUN apt-get update -y && \
-  apt-get install -y libasio-dev \
-  clangd \
-  ros-${ROS_DISTRO}-librealsense2 \
-  ros-${ROS_DISTRO}-apriltag-ros \
-  ros-${ROS_DISTRO}-v4l2-camera \
-  libfastcdr-dev \
-  libopencv-dev \
-  bash-completion \
-  python3-argcomplete \
-  ninja-build \
-  gdb 
+    apt-get install -y bash-completion \
+    python3-argcomplete 
 
 RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
   echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> /home/ubuntu/.bashrc && \

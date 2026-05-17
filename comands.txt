@@ -1,1 +1,0 @@
-ls -l /dev/v4l/by-id/       list camera devices
