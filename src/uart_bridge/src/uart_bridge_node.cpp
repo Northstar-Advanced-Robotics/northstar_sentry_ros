@@ -205,8 +205,10 @@ public:
     UartBridge() : Node("uart_bridge") {
         alive_pub_ = this->create_publisher<std_msgs::msg::Empty>(
             "uart/heartbeat", rclcpp::SensorDataQoS());
+        rclcpp::QoS qos_profile(10);
+        qos_profile.reliable(); // needed like this for tagslam
         odometry_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
-            "uart/odometry", rclcpp::SensorDataQoS());
+            "uart/odometry", qos_profile);
 
         bezier_sub_ =
             this->create_subscription<std_msgs::msg::Float32MultiArray>(

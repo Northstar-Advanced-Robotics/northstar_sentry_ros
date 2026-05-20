@@ -2,7 +2,7 @@ arducam_node:
   ros__parameters:
     framerate: 80.0
     pixel_format: YUYV
-    video_device: "/dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_20250617_0001-video-index0"
+    video_device: "/dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_202500915_0001-video-index0"
     image_size: [960, 600]
 
     auto_exposure: 1

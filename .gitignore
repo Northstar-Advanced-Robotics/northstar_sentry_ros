@@ -8,3 +8,4 @@ src/flex_sync
 .cache
 .vscode
 tag_corners.txt
+cal/cal_images_*/

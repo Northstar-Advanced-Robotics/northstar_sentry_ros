@@ -25,6 +25,7 @@ tagslam_parameters:
   # tagslam tries to line them up as well as possible. Expect larger errors
   # because the data is not truly synchronous.
   use_approximate_sync: true
+  sync_queue_size: 5000
 body_defaults:
   position_noise: 0.05
   rotation_noise: 0.01
@@ -33,7 +34,7 @@ default_body: map
 bodies:
   - map:
       is_static: true
-      default_tag_size: 0.158
+      default_tag_size: 0.145
       pose:
         position:
           x: 0
@@ -53,77 +54,198 @@ bodies:
           z: 1.0e-05
       type: simple
       tags:
+      - id: 0
+        pose: 
+          position:
+            x: -3.750
+            y: -0.321
+            z: 0.288
+          rotation:
+            x: 1.209199576
+            y: -1.209199576
+            z: -1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 1
+        pose: 
+          position:
+            x: -3.580
+            y: -1.334
+            z: 0.288
+          rotation:
+            x: 1.209199576
+            y: 1.209199576
+            z: 1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 2
+        pose: 
+          position:
+            x: -1.001
+            y: -2.800
+            z: 0.288
+          rotation:
+            x: 1.209199576
+            y: -1.209199576
+            z: -1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 3
+        pose: 
+          position:
+            x: 1.001
+            y: -2.800
+            z: 0.288
+          rotation:
+            x: 1.209199576
+            y: 1.209199576
+            z: 1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 4
+        pose: 
+          position:
+            x: 3.580
+            y: -1.334
+            z: 0.288
+          rotation:
+            x: 1.209199576
+            y: -1.209199576
+            z: -1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 5
+        pose: 
+          position:
+            x: 3.750
+            y: -0.321
+            z: 0.288
+          rotation:
+            x: 1.209199576
+            y: 1.209199576
+            z: 1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 6
+        pose: 
+          position:
+            x: 5.000
+            y: 3.999
+            z: 0.288
+          rotation:
+            x: 1.570796327
+            y: 0.0
+            z: 0.0
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 7
+        pose: 
+          position:
+            x: 0.000
+            y: -2.299
+            z: 0.288
+          rotation:
+            x: 0.0
+            y: 2.221441469
+            z: 2.221441469
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 8
+        pose: 
+          position:
+            x: 0.000
+            y: 2.9839
+            z: 0.288
+          rotation:
+            x: 1.570796327
+            y: 0.0
+            z: 0.0
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
       - id: 9
         pose: 
           position:
-            x: -0.487
-            y: -3.325
-            z: 0.775
+            x: -5.000
+            y: 3.999
+            z: 0.288
           rotation:
-            x: 0
-            y: 2.221441469079183
-            z: 2.221441469079183
+            x: 1.570796327
+            y: 0.0
+            z: 0.0
           position_noise:
-            x: 0.0001
-            y: 0.0001
-            z: 0.0001
+            x: 0.002
+            y: 0.002
+            z: 0.002
           rotation_noise:
-            x: 1.0e-05
-            y: 1.0e-05
-            z: 1.0e-05
-      - id: 10
-        pose: 
-          position:
-            x: 3.928
-            y: -1.015
-            z: 0.803
-          rotation:
-            x: 1.209199576156145
-            y: -1.209199576156145
-            z: -1.2091995761561447 
-          position_noise:
-            x: 0.0001
-            y: 0.0001
-            z: 0.0001
-          rotation_noise:
-            x: 1.0e-05
-            y: 1.0e-05
-            z: 1.0e-05
-      - id: 11
-        pose: 
-          position:
-            x: 0.087
-            y: 3.001
-            z: 0.579
-          rotation:
-            x: 1.5707963
-            y: 0
-            z: 0
-          position_noise:
-            x: 0.0001
-            y: 0.0001
-            z: 0.0001
-          rotation_noise:
-            x: 1.0e-05
-            y: 1.0e-05
-            z: 1.0e-05
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
   - rig:
+      type: simple
       is_static: false
       publish_tf: false
-      # default_tag_size: 0.158
-      type: simple
-      odom_frame_id: rig
-      # base_frame_id: rig
-      # odom_topic: odom/robot
-      # odom_frame_id: odometry
-      # odom_acceleration: 0.0
-      # odom_angular_acceleration: 0.0
-      # T_body_odom:
-      #   position:
-      #     x:  0
-      #     y:  0
-      #     z:  0
-      #   rotation:
-      #     x:  0
-      #     y:  0
-      #     z:  0
+      odom_frame_id: "rig"
+      # odom_topic: "/uart/odometry" #actuly works now but its bad
+      T_body_odom:
+        position:
+          x:  0
+          y:  0
+          z:  0
+        rotation:
+          x:  0
+          y:  0
+          z:  0

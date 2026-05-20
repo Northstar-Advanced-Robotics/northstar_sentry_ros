@@ -348,7 +348,7 @@ private:
     }
 };
 
-const FieldSetup ThetaStar::fieldSetup = FieldSetup::TestField();
+const FieldSetup ThetaStar::fieldSetup = FieldSetup::ARC();
 
 } 
 

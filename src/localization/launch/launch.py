@@ -18,11 +18,12 @@ def generate_launch_description():
 
       
     launch_nodes = []
+    tf_nodes = []
 
     cameras = {
-        'front': {'serial': '827312073868', 'x': '0.083',  'y': '0.011',  'z': '0.595', 'yaw': '0.0'},
-        'left':  {'serial': '851112061763', 'x': '-0.031', 'y': '0.080',  'z': '0.595', 'yaw': '1.5708'},
-        'right': {'serial': '827312073427', 'x': '0.036',  'y': '-0.081', 'z': '0.595', 'yaw': '-1.5708'}
+        'left':  {'serial': '827312073427', 'x': '-0.120', 'y': '0.09355',  'z': '0.320', 'yaw': '1.5708'},
+        'back': {'serial': '851112061763', 'x': '-0.116574',  'y': '-0.024074',  'z': '0.319', 'yaw': '3.14159'},
+        'right': {'serial': '827312073868', 'x': '-0.055',  'y': '-0.09355', 'z': '0.320', 'yaw': '-1.5708'}
     }
 
     uart_bridge = Node(
@@ -53,7 +54,8 @@ def generate_launch_description():
         parameters=[{"cameras": cameras_config,
                      "tagslam_config": tagslam_config,
                      "use_sim_time": False,
-                     "use_approximate_sync": True}],
+                     "use_approximate_sync": True,
+                     "sync_queue_size": 100}],
         remappings=[],
         extra_arguments=[{'use_intra_process_comms' : True}],
     )
@@ -118,27 +120,44 @@ def generate_launch_description():
     detection_topics = []
     for name, config in cameras.items():
 
-        tf = ComposableNode(
+        # tf = ComposableNode(
+        #     package='tf2_ros',
+        #     name=f'tf_{name}',
+        #     plugin='tf2_ros::StaticTransformBroadcasterNode',
+        #     parameters=[{"x": config['x'],
+        #                  "y": config['y'],
+        #                  "z": config['z'],
+        #                  "yaw": config['yaw'],
+        #                  "pitch": '0',
+        #                  "roll": '0',
+        #                  "frame-id": 'rig',
+        #                  "child-frame-id": f'{name}_cam_link',
+        #                  "use_sim_time": False,
+        #                  "use_approximate_sync": True}],
+        #     # arguments=[
+        #     #     '--x', config['x'], '--y', config['y'], '--z', config['z'],
+        #     #     '--yaw', config['yaw'], '--pitch', '0', '--roll', '0',
+        #     #     '--frame-id', 'rig', '--child-frame-id', f'{name}_cam_link',
+        #     # ],
+        #     extra_arguments=[{'use_intra_process_comms' : True}],
+        # )
+
+        tf_node = Node(
             package='tf2_ros',
+            executable='static_transform_publisher',
             name=f'tf_{name}',
-            plugin='tf2_ros::StaticTransformBroadcasterNode',
-            parameters=[{"x": config['x'],
-                         "y": config['y'],
-                         "z": config['z'],
-                         "yaw": config['yaw'],
-                         "pitch": '0',
-                         "roll": '0',
-                         "frame-id": 'rig',
-                         "child-frame-id": f'{name}_cam_link',
-                         "use_sim_time": False,
-                         "use_approximate_sync": True}],
-            # arguments=[
-            #     '--x', config['x'], '--y', config['y'], '--z', config['z'],
-            #     '--yaw', config['yaw'], '--pitch', '0', '--roll', '0',
-            #     '--frame-id', 'rig', '--child-frame-id', f'{name}_cam_link',
-            # ],
-            extra_arguments=[{'use_intra_process_comms' : True}],
+            arguments=[
+                '--x', config['x'], 
+                '--y', config['y'], 
+                '--z', config['z'],
+                '--yaw', config['yaw'], 
+                '--pitch', '0', 
+                '--roll', '0',
+                '--frame-id', 'rig', 
+                '--child-frame-id', f'{name}_cam_link'
+            ]
         )
+        tf_nodes.append(tf_node)
 
         realsense_node = ComposableNode(
             package='realsense2_camera',
@@ -152,7 +171,7 @@ def generate_launch_description():
             extra_arguments=[{'use_intra_process_comms' : True}],
         )
 
-        launch_nodes.extend([realsense_node, tf])
+        launch_nodes.extend([realsense_node])
 
 
     container = ComposableNodeContainer(
@@ -162,6 +181,7 @@ def generate_launch_description():
         executable='component_container',
         composable_node_descriptions=launch_nodes,
         output='log',
+        # arguments=['--ros-args', '--log-level', 'DEBUG']
     )
 
     return launch.LaunchDescription([container,
@@ -171,4 +191,5 @@ def generate_launch_description():
                                      path_planning,
                                      ekf_local_node,
                                      ekf_global_node,
-                                     cov_filter])
+                                     cov_filter,
+                                     *tf_nodes])

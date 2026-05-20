@@ -153,10 +153,10 @@ void DetectorNode::synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr
     tf2::Matrix3x3 m(q);
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);    
-    RCLCPP_INFO(this->get_logger(), "Gimbal State (deg): R:%.2f P:%.2f Y:%.2f", 
-            roll * 180.0 / M_PI, 
-            pitch * 180.0 / M_PI, 
-            yaw * 180.0 / M_PI);    
+    // RCLCPP_INFO(this->get_logger(), "Gimbal State (deg): R:%.2f P:%.2f Y:%.2f", 
+    //         roll * 180.0 / M_PI, 
+    //         pitch * 180.0 / M_PI, 
+    //         yaw * 180.0 / M_PI);    
     gimbal_state.yaw = -pitch;
     gimbal_state.pitch = roll - 3.14159f/2;
 

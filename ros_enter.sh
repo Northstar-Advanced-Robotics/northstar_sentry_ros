@@ -7,22 +7,18 @@ else
     -e="DISPLAY" -e="TERM" -e="QT_X11_NO_MITSHM=1" -e="COLORTERM" \
     --gpus all \
     --group-add video \
+    --group-add dialout \
+    -v="/run/udev:/run/udev:ro" \
     -e="NVIDIA_DRIVER_CAPABILITIES"=all \
     -e="FASTRTPS_DEFAULT_PROFILES_FILE"=/opt/ros/fastdds.xml \
     -v="$HOME/Docker/realsense_ws/fastdds.xml:/opt/ros/fastdds.xml" \
     -v="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
     -v="${HOME}/.Xauthority:/home/ubuntu/.Xauthority" \
-    -v="/dev:/dev" \
-    -v="/run/udev:/run/udev:ro" \
     -v="${HOME}/Docker/realsense_ws:/home/ubuntu/realsense_ws" \
     -w="/home/ubuntu/realsense_ws" \
-    --device=/dev/ttyTHS1 \
-    --group-add dialout \
-    --shm-size=4g \
-    --userns=host \
     --user=$(id -u):$(id -g) \
     --name="ros-container" \
     -v="${HOME}/.tar-installs:/devtools" \
     -v="${HOME}/.config/helix:/home/ubuntu/.config/helix" \
-    ros:nvidia bash -i
+    sentry:latest bash -i
 fi
