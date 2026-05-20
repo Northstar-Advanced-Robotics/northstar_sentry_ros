@@ -1,16 +1,18 @@
-arducam_node:
+v4l2_camera:
   ros__parameters:
-    framerate: 80.0
+    framerate: 80
     pixel_format: YUYV
     video_device: "/dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_202500915_0001-video-index0"
     image_size: [960, 600]
 
     auto_exposure: 1
-    # white_balance_automatic: false
     brightness: 0
     contrast: 10
     saturation: 10
-    # white_balance_temperature: 3300
+    white_balance_automatic: false
+    white_balance_temperature: 2500
+  
     gain: 168
     exposure_time_absolute: 83
     camera_info_url: "file:///cal/cam_info_front.yaml"
+

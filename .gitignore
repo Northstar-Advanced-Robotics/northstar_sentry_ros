@@ -9,3 +9,4 @@ src/flex_sync
 .vscode
 tag_corners.txt
 cal/cal_images_*/
+*.cameramodel

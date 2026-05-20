@@ -9,6 +9,7 @@ else
     --group-add video \
     --group-add dialout \
     -v="/run/udev:/run/udev:ro" \
+    -v="/dev:/dev" \
     -e="NVIDIA_DRIVER_CAPABILITIES"=all \
     -e="FASTRTPS_DEFAULT_PROFILES_FILE"=/opt/ros/fastdds.xml \
     -v="$HOME/Docker/realsense_ws/fastdds.xml:/opt/ros/fastdds.xml" \

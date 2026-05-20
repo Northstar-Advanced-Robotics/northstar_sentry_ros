@@ -1,0 +1,26 @@
+image_width: 1280
+image_height: 720
+camera_name: back_camera
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [919.136934, 0.0,         642.2598606,
+         0.0,        924.3388377, 360.09546,
+         0.0,        0.0,         1.0]
+distortion_model: rational_polynomial
+distortion_coefficients:
+  rows: 1
+  cols: 8
+  data: [-0.1515387899, -0.5644875325, 0.000270211402, 0.001208139743, 0.689991742, -0.3434836596, 0.1030293161, 0.02853861134]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [919.136934, 0.0,         642.2598606, 0.0,
+         0.0,        924.3388377, 360.09546,   0.0,
+         0.0,        0.0,         1.0,         0.0]

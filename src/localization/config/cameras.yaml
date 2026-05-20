@@ -1,31 +1,33 @@
 cam0:
   camera_model: pinhole
-  intrinsics: [918.1359807, 917.4572847, 644.8085022, 363.1237915]
-  distortion_model: rational_polynomial
-  distortion_coeffs: [-0.07797829157, -0.275521566, -0.0009005399526, 0.0002086778127, 0.3551218176, -0.2277495576, 0.1519481704, 0.05761514408]
+  intrinsics: [917.5124747, 921.521918, 647.9087942, 371.9490433]
+  distortion_model: radtan
+  distortion_coeffs: [-0.008330578116, -0.5053815296, 0.002321439664, 0.001062841299, 0.6789207332, -0.1980276774, 0.1416905618, 0.0401066381]
   resolution: [1280, 720]
   image_topic: /left/camera/color/image_raw
   # image_transport: raw
   tag_topic: /cam_sync/cam_0/detector/tags
   tag_detector: umich
   rig_body: rig
+
 cam1:
   camera_model: pinhole
-  intrinsics: [1388.89, 1388.70, 969.69, 538.37841]
-  distortion_model: plumb_bob
-  distortion_coeffs: [0, 0, 0, 0, 0]
-  resolution: [1920, 1080]
+  intrinsics: [919.136934, 924.3388377, 642.2598606, 360.09546]
+  distortion_model: radtan
+  distortion_coeffs: [-0.1515387899, -0.5644875325, 0.000270211402, 0.001208139743, 0.689991742, -0.3434836596, 0.1030293161, 0.02853861134]
+  resolution: [1280, 720]
   image_topic: /back/camera/color/image_raw
   # image_transport: raw
   tag_topic: /cam_sync/cam_1/detector/tags
   tag_detector: umich
   rig_body: rig
+
 cam2:
   camera_model: pinhole
-  intrinsics: [1390.3, 1389.25, 968.4056, 536.008]
-  distortion_model: plumb_bob
-  distortion_coeffs: [0, 0, 0, 0, 0]
-  resolution: [1920, 1080]
+  intrinsics: [918.4566019, 921.2444553, 658.2551131, 376.94991]
+  distortion_model: radtan
+  distortion_coeffs: [-0.09793762722, -0.4010231332, 0.005371985064, 0.0009095148948, 0.4621032025, -0.2580323815, 0.1069447061, 0.03879501892]
+  resolution: [1280, 720]
   image_topic: /right/camera/color/image_raw
   #for infra1 detecting
   # image_topic: /right/camera/infra1/image_rect_raw
