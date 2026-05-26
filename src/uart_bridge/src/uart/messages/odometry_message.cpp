@@ -12,10 +12,10 @@ OdometryMessage::OdometryMessage()
       roll(0.0f),
       yaw(0.0f),
       vel_x(0.0f),
-      vel_y(0.0f)  //,
+      vel_y(0.0f),
 //   vel_z(0.0f),
 //   pitch_vel(0.0f),
-//   yaw_vel(0.0f),
+    yaw_vel(0.0f)
 //   roll_vel(0.0f)
 {
 }
@@ -49,7 +49,7 @@ void OdometryMessage::parse(const std::vector<uint8_t>& bytes)
 
     // std::memcpy(&pitch_vel, bytes.data() + 40, sizeof(float));
 
-    // std::memcpy(&yaw_vel, bytes.data() + 44, sizeof(float));
+    std::memcpy(&yaw_vel, bytes.data() + 24, sizeof(float));
 
     // std::memcpy(&roll_vel, bytes.data() + 48, sizeof(float));
 }
