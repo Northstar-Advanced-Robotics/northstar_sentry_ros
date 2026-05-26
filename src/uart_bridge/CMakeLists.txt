@@ -26,6 +26,8 @@ add_executable(uart_bridge_node
   src/uart/messages/auto_path_message.cpp
   src/uart/handlers/odometry_handler.cpp
   src/uart/messages/vision_localization_message.cpp
+  src/uart/messages/fly_sky_meassage.cpp
+  src/uart/ibus_reader.cpp
   src/uart/uart.cpp
   src/uart/crc/crc.cpp
 )

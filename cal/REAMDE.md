@@ -45,3 +45,5 @@ ros2 run v4l2_camera v4l2_camera_node --ros-args --params-file cal/v4l2_cal_conf
 to change framerate exit the container and run:
 v4l2-ctl -d /dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_202500915_0001-video-index0 \
   --set-parm=15
+
+v4l2-ctl -d /dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_202500915_0001-video-index0  --set-fmt-video=width=960,height=600

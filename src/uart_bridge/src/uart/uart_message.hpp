@@ -17,7 +17,8 @@ public:
         AUTO_PATH = 5,
         HEALTH = 6,
         REF_TURRET_DATA = 7,
-        VISION_LOCALIZION = 8
+        VISION_LOCALIZION = 8,
+        FLY_SKY_DATA = 9
     };
 
     virtual MessageType get_type_id() = 0;

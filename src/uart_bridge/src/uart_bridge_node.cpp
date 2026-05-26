@@ -24,11 +24,13 @@
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
 
+#include "uart/ibus_reader.hpp"
 #include <uart/handlers/odometry_handler.hpp>
 #include <uart/messages/alive_message.hpp>
 #include <uart/messages/auto_path_message.hpp>
 #include <uart/messages/autoaim_message.hpp>
 #include <uart/messages/odometry_message.hpp>
+#include "uart/messages/fly_sky_meassage.hpp"
 #include <uart/uart.hpp>
 
 using namespace std::chrono_literals;
@@ -64,6 +66,7 @@ private:
     src::uart::VisionLocalizationMessage vision_localization_msg;
 
     std::unique_ptr<src::uart::Uart> uart_;
+    std::unique_ptr<src::uart::IBusReader> flysky_reader_;
 
     std::thread rx_thread_;
 
@@ -276,6 +279,10 @@ public:
 
         uart_ = std::make_unique<src::uart::Uart>(uart_config,
                                                   std::move(handlers), true);
+
+        flysky_reader_ = std::make_unique<src::uart::IBusReader>("/dev/ttyUSB0", uart_.get());
+        flysky_reader_->start();
+
 
         rx_thread_ = std::thread([this]() {
             if (this->uart_) {

@@ -27,6 +27,7 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# this makes launch/config dirs be available to ros2
 install(DIRECTORY
   launch
   config

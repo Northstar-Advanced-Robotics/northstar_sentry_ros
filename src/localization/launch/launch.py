@@ -15,11 +15,11 @@ def generate_launch_description():
     ekf_local_config = os.path.join(pkg_share, 'config', 'ekf_local.yaml')
     ekf_global_config = os.path.join(pkg_share, 'config', 'ekf_global.yaml')
     arducam_config = os.path.join(pkg_share, 'config', 'arducam.yaml')
-
       
-    launch_nodes = []
+    composable_nodes = []
     tf_nodes = []
 
+    # camera positions relative to robot center
     cameras = {
         'left':  {'serial': '827312073427', 'x': '-0.120', 'y': '0.09355',  'z': '0.320', 'yaw': '1.5708'},
         'back': {'serial': '851112061763', 'x': '-0.116574',  'y': '-0.024074',  'z': '0.319', 'yaw': '3.14159'},
@@ -73,14 +73,6 @@ def generate_launch_description():
         extra_arguments=[{'use_intra_process_comms' : True}],
     )
 
-    # ekf_node = Node(
-    #     package='robot_localization',
-    #     executable='ekf_node',
-    #     name='ekf_filter_node',
-    #     output='screen',
-    #     parameters=[ekf_config]
-    # )
-
     ekf_local_node = Node(
         package='robot_localization',
         executable='ekf_node',
@@ -115,9 +107,8 @@ def generate_launch_description():
         parameters=[arducam_config],
     )
 
-    launch_nodes.extend([sync_and_detect, tagslam])
+    composable_nodes.extend([sync_and_detect, tagslam])
    
-    detection_topics = []
     for name, config in cameras.items():
 
         # tf = ComposableNode(
@@ -171,7 +162,7 @@ def generate_launch_description():
             extra_arguments=[{'use_intra_process_comms' : True}],
         )
 
-        launch_nodes.extend([realsense_node])
+        composable_nodes.extend([realsense_node])
 
 
     container = ComposableNodeContainer(
@@ -179,7 +170,7 @@ def generate_launch_description():
         namespace='',
         package='rclcpp_components',
         executable='component_container',
-        composable_node_descriptions=launch_nodes,
+        composable_node_descriptions=composable_nodes,
         output='log',
         # arguments=['--ros-args', '--log-level', 'DEBUG']
     )

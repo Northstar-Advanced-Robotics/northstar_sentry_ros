@@ -1,6 +1,7 @@
 #ifndef ROS_VISUALIZER_HPP
 #define ROS_VISUALIZER_HPP
 
+#include <Eigen/src/Core/Matrix.h>
 #include <chrono>
 #include <memory>
 #include <vector>
@@ -197,8 +198,22 @@ public:
         }
     }
 
+    std::vector<Eigen::Vector2f> goalPoses = { Eigen::Vector2f(-1, 1), Eigen::Vector2f(1, -1), Eigen::Vector2f(-2.75, -1.15), Eigen::Vector2f(-5.25, 0), Eigen::Vector2f(-2.5, 2.5) };
+    int goalIndex = 0;
+    float goalError = 0.025; // meters
     Eigen::Vector2f calculateWorldGoalPos() {
-        return currentWorldGoalPos;
+        Eigen::Vector2f goal = goalPoses[goalIndex];
+        float distanceToGoal = (goal - currentRobotWorldPos).norm();
+
+        if (distanceToGoal <= goalError)
+        {
+            goalIndex++; 
+            if (goalIndex >= goalPoses.size()) { goalIndex = 0; }
+
+            goal = goalPoses[goalIndex];
+        }
+        
+        return goal;
     }
 
     AutoPathing::CubicBezier calculateCurrentBezierToGoal() {
