@@ -118,28 +118,25 @@ private:
         double local_vy = -(global_vx * sin(yaw)) + (global_vy * cos(yaw));
 
         tf2::Quaternion q;
-        q.setRPY(0, 0, -odom_msg.yaw);
-        odom_msg_ros.pose.pose.orientation = tf2::toMsg(q);
+        q.setRPY(0, odom_msg.pitch, -odom_msg.yaw);
+        
+        odom_msg_ros.pose.pose.orientation.x = q.getX();
+        odom_msg_ros.pose.pose.orientation.y = q.getY();
+        odom_msg_ros.pose.pose.orientation.z = q.getZ();
+        odom_msg_ros.pose.pose.orientation.w = q.getW();
 
         odom_msg_ros.twist.twist.linear.x = local_vx;
         odom_msg_ros.twist.twist.linear.y = local_vy;
-
+        
         odom_msg_ros.pose.pose.position.z = 0.0;
 
-        tf2::Quaternion qa{};
-        qa.setEuler(odom_msg.yaw, odom_msg.pitch, 0);
-
-        odom_msg_ros.pose.pose.orientation.x = qa.getX();
-        odom_msg_ros.pose.pose.orientation.y = qa.getY();
-        odom_msg_ros.pose.pose.orientation.z = qa.getZ();
-        odom_msg_ros.pose.pose.orientation.w = qa.getW();
 
         // odom_msg.twist.twist.angular.x =
         // odom_msg.roll_vel;
         // odom_msg.twist.twist.angular.y =
         // odom_msg.pitch_vel;
-        // odom_msg_ros.twist.twist.angular.z =
-        // -odom_msg.yaw_vel;
+        odom_msg_ros.twist.twist.angular.z =
+        -odom_msg.yaw_vel;
 
         odom_msg_ros.pose.covariance[0] = 0.01;    // X pos covariance
         odom_msg_ros.pose.covariance[7] = 0.01;    // Y pos covariance

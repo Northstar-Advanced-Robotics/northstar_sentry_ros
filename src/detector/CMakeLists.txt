@@ -69,7 +69,7 @@ add_executable(detector
     detector_submodule/src/detector.cpp
     detector_submodule/src/pnp_solver.cpp
     detector_submodule/src/number_classifier.cpp
-    # detector_submodule/src/uart/messages/autoaim_message.cpp
+    detector_submodule/src/uart/messages/autoaim_message.cpp
     detector_submodule/src/camera/usb_camera.cpp
     detector_submodule/src/camera/realsense_camera.cpp
 )

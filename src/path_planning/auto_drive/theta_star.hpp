@@ -1,6 +1,8 @@
 #ifndef THETA_STAR_HPP
 #define THETA_STAR_HPP
 
+#include <eigen3/Eigen/Dense>
+
 #include <vector>
 #include <queue>
 #include <unordered_map>
@@ -8,8 +10,6 @@
 #include <cstddef>   
 #include <cmath>     
 #include <cstdlib> // For abs
-
-#include <eigen3/Eigen/Dense>
 
 #include "tracked_robot.hpp"
 #include "field_setup.hpp"

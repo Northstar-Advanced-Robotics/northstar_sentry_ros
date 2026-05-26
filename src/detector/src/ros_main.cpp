@@ -36,6 +36,7 @@
 #include "pnp_solver.hpp"
 #include "types.hpp"
 #include "uart_bridge/msg/auto_aim.hpp"
+#include "uart/messages/autoaim_message.hpp"
 
 std::atomic<long long> jetson_to_mcb_offset_us{0};
 
@@ -212,7 +213,7 @@ void DetectorNode::synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr
     detector->run_detection(img, gimbal_state, dt);
 
     // 7. Extract Data and Publish
-    auto auto_aim_data = detector->getAutoAimData();
+    src::uart::AutoAimMessage auto_aim_data = detector->getAutoAimData();
 
     // Get detector feedback image and publish it
     cv::Mat detector_feedback = detector->getDetectorFeedback();
@@ -232,7 +233,7 @@ void DetectorNode::synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr
     mymsg.distance = auto_aim_data.distance;
     mymsg.yaw_error = auto_aim_data.yaw_error;
     mymsg.pitch_error = auto_aim_data.pitch_error;
-    mymsg.target_id = auto_aim_data.id;
+    mymsg.target_id = auto_aim_data.target_id;
 
     autoaim_pub_->publish(mymsg); 
 

@@ -3,7 +3,7 @@ ekf_local_node:
     frequency: 30.0
     two_d_mode: true # Set to false if you are flying/moving in 3D
     publish_tf: true
-    predict_to_current_time: true
+    predict_to_current_time: false
 
 
     map_frame: map

@@ -1,7 +1,9 @@
 #ifndef ROS_VISUALIZER_HPP
 #define ROS_VISUALIZER_HPP
 
+#include <eigen3/Eigen/Dense>
 #include <Eigen/src/Core/Matrix.h>
+
 #include <chrono>
 #include <memory>
 #include <vector>
@@ -15,7 +17,6 @@
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <eigen3/Eigen/Dense>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
