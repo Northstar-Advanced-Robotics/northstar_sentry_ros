@@ -6,8 +6,8 @@ cam0:
   resolution: [1280, 720]
   image_topic: /left/camera/color/image_raw
   # image_transport: raw
-  tag_topic: /cam_sync/cam_0/detector/tags
-  tag_detector: umich
+  tag_topic: /left/detector/tags
+  tag_detector: isaac_ros
   rig_body: rig
 
 cam1:
@@ -18,8 +18,8 @@ cam1:
   resolution: [1280, 720]
   image_topic: /back/camera/color/image_raw
   # image_transport: raw
-  tag_topic: /cam_sync/cam_1/detector/tags
-  tag_detector: umich
+  tag_topic: /back/detector/tags
+  tag_detector: isaac_ros
   rig_body: rig
 
 cam2:
@@ -32,6 +32,6 @@ cam2:
   #for infra1 detecting
   # image_topic: /right/camera/infra1/image_rect_raw
   # image_transport: raw
-  tag_topic: /cam_sync/cam_2/detector/tags
-  tag_detector: umich
+  tag_topic: /right/detector/tags
+  tag_detector: isaac_ros
   rig_body: rig

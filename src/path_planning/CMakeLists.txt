@@ -13,7 +13,8 @@ find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
 add_executable(path_planning_node
-    src/main.cpp)
+    src/main.cpp
+    auto_drive/path_outline.hpp)
 
 ament_target_dependencies(path_planning_node 
     rclcpp 

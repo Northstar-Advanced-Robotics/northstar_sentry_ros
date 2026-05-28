@@ -10,3 +10,4 @@ src/flex_sync
 tag_corners.txt
 cal/cal_images_*/
 *.cameramodel
+/rosbag*

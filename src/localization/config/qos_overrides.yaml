@@ -1,0 +1,54 @@
+/**:
+  ros__parameters:
+    qos_overrides:
+      # LEFT CAMERA
+      /left/camera/color/image_raw:  
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 1
+      /left/camera/color/camera_info:
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 1
+      /left/detector/tags:
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 10
+          
+      # BACK CAMERA
+      /back/camera/color/image_raw:  
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 1
+      /back/camera/color/camera_info:
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 1
+      /back/detector/tags:
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 10
+
+          
+      # RIGHT CAMERA
+      /right/camera/color/image_raw:  
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 1
+      /right/camera/color/camera_info:
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 1
+      /right/detector/tags:
+        subscription:
+          reliability: best_effort
+          history: keep_last
+          depth: 10

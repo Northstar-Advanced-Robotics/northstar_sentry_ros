@@ -28,6 +28,7 @@
 #include "auto_drive/theta_star.hpp"
 #include "auto_drive/cubic_bezier.hpp"
 #include "auto_drive/cubic_bezier_fitter.hpp"
+#include "auto_drive/path_outline.hpp"
 
 using namespace std::chrono_literals;
 
@@ -46,10 +47,10 @@ public:
         bezier_published_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/published_bezier", 10);
         bezier_current_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
 
-        goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&RosVisualizer::goal_callback, this, std::placeholders::_1)
-);
+        goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&RosVisualizer::goal_callback, this, std::placeholders::_1));
 
         thetaStar = new src::AutoPathing::ThetaStar();
+        lastBezierPublishTime = this->now();
         lastGridPublishTime = this->now();
 
         // Timer to call the transform callback periodically (approx 30Hz)
@@ -63,7 +64,7 @@ public:
         try {
             // Lookup the latest transform from map to rig
             transform = tf2_buffer_->lookupTransform(
-                "map", "rig",
+                "map", "base_link",
                 tf2::TimePointZero
             );
 
@@ -71,7 +72,7 @@ public:
             double y_offset = transform.transform.translation.y;
 
             // Map TF to internal state (maintaining your specific coordinate mapping)
-            currentRobotWorldPos = Eigen::Vector2f(-y_offset, x_offset);
+            currentRobotWorldPos = Eigen::Vector2f(x_offset, y_offset);
             hasRobotPos = true;
 
             RCLCPP_DEBUG(this->get_logger(), "Robot Pos Updated: X: %f, Y: %f",
@@ -92,7 +93,7 @@ public:
         );
     }
 
-    void publishBezierData(AutoPathing::CubicBezier& bezierToPub) {
+    void publishBezierData(AutoPathing::CubicBezier& bezierToPub, rclcpp::Time& currentTime) {
         publishedBezier = bezierToPub;
 
         std_msgs::msg::Float32MultiArray arr;
@@ -103,7 +104,9 @@ public:
             bezierToPub.controlEnd.x(), bezierToPub.controlEnd.y(), 
             bezierToPub.length
         };
+
         bezier_data_pub_->publish(arr);
+        lastBezierPublishTime = currentTime;
     }
 
     void publishBezierVisualizer(AutoPathing::CubicBezier& currentBezier, rclcpp::Time& currentTime) {
@@ -188,8 +191,9 @@ public:
 
         AutoPathing::CubicBezier currentBezier = calculateCurrentBezierToGoal();
 
-        if (currentBezier.end != publishedBezier.end) {
-            this->publishBezierData(currentBezier);
+        //if (currentBezier.end != publishedBezier.end) {
+        if ((currentTime - lastBezierPublishTime).seconds() > 5) {
+             this->publishBezierData(currentBezier, currentTime);
         }
 
         this->publishBezierVisualizer(currentBezier, currentTime);
@@ -199,7 +203,7 @@ public:
         }
     }
 
-    std::vector<Eigen::Vector2f> goalPoses = { Eigen::Vector2f(-1, 1), Eigen::Vector2f(1, -1), Eigen::Vector2f(-2.75, -1.15), Eigen::Vector2f(-5.25, 0), Eigen::Vector2f(-2.5, 2.5) };
+    std::vector<Eigen::Vector2f> goalPoses = { Eigen::Vector2f(-4.5f, 0.0f), Eigen::Vector2f(-4.5f, 2.5f), Eigen::Vector2f(-3.05f, 1.45f) };
     int goalIndex = 0;
     float goalError = 0.025; // meters
     Eigen::Vector2f calculateWorldGoalPos() {
@@ -215,6 +219,11 @@ public:
         }
         
         return goal;
+
+        float healthPercentage = (float)currentHealth / MAX_HEALTH;
+
+        if (healthPercentage < 0.3f) { return leftTeam ? LEFT_ALL_ZONE : RIGHT_ALL_ZONE; }
+        else { return MID_PATH_OUTLINE.evaluatePath(currentRobotWorldPos); }
     }
 
     AutoPathing::CubicBezier calculateCurrentBezierToGoal() {
@@ -248,6 +257,10 @@ private:
                     currentWorldGoalPos.x(), currentWorldGoalPos.y());
     }
 
+    void pos_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+
+    }
+
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
     rclcpp::TimerBase::SharedPtr odom_timer_;
@@ -255,6 +268,7 @@ private:
     src::AutoPathing::ThetaStar* thetaStar;
     src::AutoPathing::CubicBezier publishedBezier;
 
+    rclcpp::Time lastBezierPublishTime;
     rclcpp::Time lastGridPublishTime;
 
     Eigen::Vector2f currentWorldGoalPos;
@@ -262,6 +276,20 @@ private:
 
     bool hasRobotPos = false;
     Eigen::Vector2f currentRobotWorldPos;
+    int currentHealth = 400;
+    const int MAX_HEALTH = 400;
+
+    bool leftTeam = true;
+
+    const Eigen::Vector2f LEFT_ALL_ZONE = Eigen::Vector2f(-5.3f, 0.0f);
+    const Eigen::Vector2f RIGHT_ALL_ZONE = Eigen::Vector2f(-5.3f, 0.0f);
+
+    const Eigen::Vector2f MID_BL = Eigen::Vector2f(-1.0f, -1.0f);
+    const Eigen::Vector2f MID_BR = Eigen::Vector2f(1.0f, -1.0f);
+    const Eigen::Vector2f MID_TL = Eigen::Vector2f(-1.0f, 1.0f);
+    const Eigen::Vector2f MID_TR = Eigen::Vector2f(1.0f, 1.0f);
+
+    PathOutline MID_PATH_OUTLINE = PathOutline({MID_TL, MID_BR, MID_BL, MID_TR}, true);
 };
 
 } // namespace src::viz

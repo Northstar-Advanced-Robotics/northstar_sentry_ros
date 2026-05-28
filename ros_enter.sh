@@ -1,15 +1,17 @@
 #!/bin/bash
 
 if [ -n "$(docker ps -f "name=^/ros-container$" -q )" ]; then
-  docker exec -it ros-container bash
+  docker exec -it ros-container bash -i
 else
   docker run -it --rm --net=host --ipc=host --pid=host --privileged \
     -e="DISPLAY" -e="TERM" -e="QT_X11_NO_MITSHM=1" -e="COLORTERM" \
-    --gpus all \
+    --runtime=nvidia \
+    --shm-size=8g \
     --group-add video \
     --group-add dialout \
     -v="/run/udev:/run/udev:ro" \
     -v="/dev:/dev" \
+    -v="/opt/nvidia/vpi3:/opt/nvidia/vpi3:ro" \
     -e="NVIDIA_DRIVER_CAPABILITIES"=all \
     -e="FASTRTPS_DEFAULT_PROFILES_FILE"=/opt/ros/fastdds.xml \
     -v="$HOME/Docker/realsense_ws/fastdds.xml:/opt/ros/fastdds.xml" \

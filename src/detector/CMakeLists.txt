@@ -5,9 +5,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
 endif()
 
-# Set the C++ standard
-set(CMAKE_CXX_STANDARD 17)
+# Natively and cleanly set C++20 for BOTH C++ and CUDA
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+# Tell the compiler this is for the Jetson Orin AGX (Ampere)
+set(CMAKE_CUDA_ARCHITECTURES 87)
 
 # set(OpenCV_DIR "/home/northstar/opencv/build") # NOTE: idk
 

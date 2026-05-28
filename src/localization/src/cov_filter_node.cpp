@@ -18,7 +18,7 @@ private:
 
     // --- Tuning Constants ---
     const double MIN_COV_MULTIPLIER = 0.1;   
-    const double MAX_COV_MULTIPLIER = 50.0;  
+    const double MAX_COV_MULTIPLIER = 500.0;  
     const double REFERENCE_AREA = 5000.0; // Typical area in px^2 at ~1.5m. Tune this!
 
     void tag_callback(const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg) {
@@ -55,6 +55,8 @@ private:
         for (int index : diagonal_indices) {
             filtered_msg.pose.covariance[index] *= multiplier;
         }
+        std::cout << "Tag Count: " << last_tag_count_ << ", Avg Area: " << last_tag_area_avg_ << ", Mult: " << multiplier << std::endl;
+
 
         filtered_odom_pub_->publish(filtered_msg);
 

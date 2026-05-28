@@ -13,7 +13,7 @@
 #include "std_msgs/msg/int32.hpp"
 
 #include <opencv4/opencv2/core/mat.hpp>
-#include <cv_bridge/cv_bridge.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 #include <rclcpp/executors.hpp>
 #include <rclcpp/logging.hpp>

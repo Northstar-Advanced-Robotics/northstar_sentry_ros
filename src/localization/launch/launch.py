@@ -15,6 +15,7 @@ def generate_launch_description():
     ekf_local_config = os.path.join(pkg_share, 'config', 'ekf_local.yaml')
     ekf_global_config = os.path.join(pkg_share, 'config', 'ekf_global.yaml')
     arducam_config = os.path.join(pkg_share, 'config', 'arducam.yaml')
+    qos_overrides_config = os.path.join(pkg_share, 'config', 'qos_overrides.yaml')
       
     composable_nodes = []
     tf_nodes = []
@@ -25,6 +26,18 @@ def generate_launch_description():
         'back': {'serial': '851112061763', 'x': '-0.116574',  'y': '-0.024074',  'z': '0.319', 'yaw': '3.14159'},
         'right': {'serial': '827312073868', 'x': '-0.055',  'y': '-0.09355', 'z': '0.320', 'yaw': '-1.5708'}
     }
+
+    tf_node = Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name=f'tf_base_link',
+            arguments=[
+                '--frame-id', 'odom', 
+                '--child-frame-id', f'base_link'
+            ]
+        )
+    
+    tf_nodes.append(tf_node)
 
     uart_bridge = Node(
         package="uart_bridge",
@@ -47,18 +60,19 @@ def generate_launch_description():
         name='path_planning',
     )
 
-    sync_and_detect = ComposableNode(
-        package="tagslam",
-        plugin="tagslam::SyncAndDetect",
-        name="sync_and_detect",
-        parameters=[{"cameras": cameras_config,
-                     "tagslam_config": tagslam_config,
-                     "use_sim_time": False,
-                     "use_approximate_sync": True,
-                     "sync_queue_size": 100}],
-        remappings=[],
-        extra_arguments=[{'use_intra_process_comms' : True}],
-    )
+    # sync_and_detect = ComposableNode(
+    #     package="tagslam",
+    #     plugin="tagslam::SyncAndDetect",
+    #     name="sync_and_detect",
+    #     parameters=[{"cameras": cameras_config,
+    #                  "tagslam_config": tagslam_config,
+    #                  "use_sim_time": False,
+    #                  "use_approximate_sync": True,
+    #                  "sync_queue_size": 2},
+    #                  qos_overrides_config],
+    #     remappings=[],
+    #     extra_arguments=[{'use_intra_process_comms' : True}],
+    # )
 
     tagslam = ComposableNode(
         package="tagslam",
@@ -68,7 +82,8 @@ def generate_launch_description():
                      "tagslam_config": tagslam_config,
                      "camera_poses": camera_poses_config,
                      "use_sim_time": False,
-                     "use_approximate_sync": True}],
+                     "use_approximate_sync": True},
+                     qos_overrides_config],
         remappings=[],
         extra_arguments=[{'use_intra_process_comms' : True}],
     )
@@ -107,7 +122,7 @@ def generate_launch_description():
         parameters=[arducam_config],
     )
 
-    composable_nodes.extend([sync_and_detect, tagslam])
+    composable_nodes.extend([tagslam]) # sync_and_detect, 
    
     for name, config in cameras.items():
 
@@ -144,7 +159,7 @@ def generate_launch_description():
                 '--yaw', config['yaw'], 
                 '--pitch', '0', 
                 '--roll', '0',
-                '--frame-id', 'rig', 
+                '--frame-id', 'base_link', 
                 '--child-frame-id', f'{name}_cam_link'
             ]
         )
@@ -158,21 +173,49 @@ def generate_launch_description():
             parameters=[camera_config, {
                 'serial_no': config['serial'],
                 'camera_name': f'{name}_cam',
+                'qos_image_topic': 'SENSOR_DATA'
             }],
             extra_arguments=[{'use_intra_process_comms' : True}],
         )
 
-        composable_nodes.extend([realsense_node])
+        isaac_apriltag_node = ComposableNode(
+            package='isaac_ros_apriltag',
+            plugin='nvidia::isaac_ros::apriltag::AprilTagNode',
+            name=f'apriltag',
+            namespace=name,
+            parameters=[{'size': 0.145,
+                     'max_tags': 3,
+                     'tile_size': 4,
+                     'tag_family': 'tag36h11',
+                     'backends': 'CUDA'}],
+            # Remap the inputs to match the RealSense infra1 stream, 
+            # and remap the output to match what TagSLAM expects.
+            remappings=[
+                ('image', f'/{name}/camera/color/image_raw'),
+                ('camera_info', f'/{name}/camera/color/camera_info'),
+                ('tag_detections', f'/{name}/detector/tags_nvidia')
+            ],
+            extra_arguments=[{'use_intra_process_comms' : False}],
+        )
+
+        composable_nodes.extend([realsense_node, isaac_apriltag_node])
 
 
     container = ComposableNodeContainer(
         name='sentry_stack',
         namespace='',
         package='rclcpp_components',
-        executable='component_container',
+        executable='component_container_mt',
         composable_node_descriptions=composable_nodes,
         output='log',
         # arguments=['--ros-args', '--log-level', 'DEBUG']
+    )
+
+    translator_node = Node(
+        package="localization",
+        executable="tag_translator_node",
+        output="screen",
+        name="tag_translator"
     )
 
     return launch.LaunchDescription([container,
@@ -183,4 +226,5 @@ def generate_launch_description():
                                      ekf_local_node,
                                      ekf_global_node,
                                      cov_filter,
+                                     translator_node,
                                      *tf_nodes])

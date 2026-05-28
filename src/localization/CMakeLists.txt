@@ -10,20 +10,32 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(apriltag_msgs REQUIRED)
+find_package(isaac_ros_apriltag_interfaces REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
 add_executable(cov_filter_node src/cov_filter_node.cpp)
 
+add_executable(tag_translator_node src/tag_translator.cpp)
+
 ament_target_dependencies(cov_filter_node
   rclcpp
   nav_msgs
   apriltag_msgs
+  isaac_ros_apriltag_interfaces
+)
+
+ament_target_dependencies(tag_translator_node
+  rclcpp
+  nav_msgs
+  apriltag_msgs
+  isaac_ros_apriltag_interfaces
 )
 
 install(TARGETS
   cov_filter_node
+  tag_translator_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

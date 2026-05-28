@@ -107,7 +107,7 @@ private:
 
         odom_msg_ros.header.stamp = true_ros_time;
         odom_msg_ros.header.frame_id = "odom";
-        odom_msg_ros.child_frame_id = "rig";
+        odom_msg_ros.child_frame_id = "base_link";
 
         double global_vx = odom_msg.vel_y;
         double global_vy = -odom_msg.vel_x;
@@ -166,7 +166,7 @@ private:
             // transform available
             // right now
             transform = tf2_buffer_->lookupTransform(
-                "rig", "map",
+                "map", "base_link",
                 tf2::TimePointZero // This means "give me the latest"
             );
 
@@ -175,8 +175,8 @@ private:
             double x_offset = transform.transform.translation.x;
             double y_offset = transform.transform.translation.y;
 
-            vision_localization_msg.x = y_offset;
-            vision_localization_msg.y = -x_offset;
+            vision_localization_msg.x = x_offset;
+            vision_localization_msg.y = y_offset;
 
             uart_->send(std::make_unique<src::uart::VisionLocalizationMessage>(
                 vision_localization_msg));
@@ -229,7 +229,7 @@ public:
         //                   std::placeholders::_1));
 
         odom_timer_ = this->create_wall_timer(
-            33ms, std::bind(&UartBridge::transform_callback, this));
+            10ms, std::bind(&UartBridge::transform_callback, this));
 
         tf2_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf2_listener =

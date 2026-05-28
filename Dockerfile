@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
+FROM nvidia/cuda:12.2.2-devel-ubuntu22.04
 
 SHELL ["/bin/bash", "-c"]
 
@@ -11,25 +11,34 @@ RUN apt-get update && apt-get install -y software-properties-common && \
     curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb" &&\
     dpkg -i /tmp/ros2-apt-source.deb 
 
-ENV ROS_DISTRO=jazzy
+RUN curl -fsSL https://isaac.download.nvidia.com/isaac-ros/repos.key | gpg --dearmor -o /usr/share/keyrings/nvidia-isaac-ros.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/nvidia-isaac-ros.gpg] https://isaac.download.nvidia.com/isaac-ros/release-3 jammy release-3.0" > /etc/apt/sources.list.d/nvidia-isaac-ros.list
+
+ENV ROS_DISTRO=humble
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Chicago
+
+RUN apt-get update -y && apt-get install -y python3-pip && \
+    pip3 install --upgrade cmake && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-    ros-jazzy-ros-base \
+    ros-humble-ros-base \
     ros-dev-tools \
     ros-${ROS_DISTRO}-rviz2  \
-    ros-${ROS_DISTRO}-librealsense2  \
-    ros-${ROS_DISTRO}-realsense2-*  \
+    ros-${ROS_DISTRO}-realsense2-* \
+    ros-${ROS_DISTRO}-librealsense2 \
     ros-${ROS_DISTRO}-ament-cmake-clang-format  \
     ros-${ROS_DISTRO}-gtsam  \
+    ros-${ROS_DISTRO}-robot-localization \
     ros-${ROS_DISTRO}-apriltag-detector  \
     ros-${ROS_DISTRO}-apriltag-detector-umich  \
     ros-${ROS_DISTRO}-ament-clang-format  \
-    ros-${ROS_DISTRO}-robot-localization \
+    ros-${ROS_DISTRO}-isaac-ros-apriltag \
+    ros-${ROS_DISTRO}-apriltag-msgs \
     libboost-all-dev  \
     libasio-dev \
     clangd \
-    ros-${ROS_DISTRO}-librealsense2 \
-    ros-${ROS_DISTRO}-apriltag-ros \
     ros-${ROS_DISTRO}-v4l2-camera \
     libfastcdr-dev \
     libopencv-dev \
@@ -41,12 +50,24 @@ RUN apt-get update -y && apt-get install -y \
     bash-completion \
     python3-argcomplete 
 
+# Install sudo so your user can run admin commands
+RUN apt-get update && apt-get install -y sudo && rm -rf /var/lib/apt/lists/*
+
+# Create the 'ubuntu' user with UID/GID 1000 to match the host
+RUN groupadd -g 1000 ubuntu && \
+    useradd -u 1000 -g ubuntu -m -s /bin/bash ubuntu && \
+    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
 # setting up command autocomplete
-RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
+RUN mkdir -p /home/ubuntu && \
+    echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
     echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> /home/ubuntu/.bashrc && \
-    register-python-argcomplete ros2 > /etc/bash_completion.d/ros2 && \
-    register-python-argcomplete colcon > /etc/bash_completion.d/colcon 
+    register-python-argcomplete3 ros2 > /etc/bash_completion.d/ros2 && \
+    register-python-argcomplete3 colcon > /etc/bash_completion.d/colcon
 
 # can mount stuff to /devtools in the run command to access them
 ENV PATH="/devtools:${PATH}"
 ENV ROS_LOG_DIR="/home/ubuntu/realsense_ws/logs"
+
+USER ubuntu
+WORKDIR /home/ubuntu
