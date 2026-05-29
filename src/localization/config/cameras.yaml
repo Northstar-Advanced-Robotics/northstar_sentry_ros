@@ -2,7 +2,8 @@ cam0:
   camera_model: pinhole
   intrinsics: [917.5124747, 921.521918, 647.9087942, 371.9490433]
   distortion_model: radtan
-  distortion_coeffs: [-0.008330578116, -0.5053815296, 0.002321439664, 0.001062841299, 0.6789207332, -0.1980276774, 0.1416905618, 0.0401066381]
+  distortion_coeffs: [0,0,0,0,0]
+  # distortion_coeffs: [-0.008330578116, -0.5053815296, 0.002321439664, 0.001062841299, 0.6789207332, -0.1980276774, 0.1416905618, 0.0401066381]
   resolution: [1280, 720]
   image_topic: /left/camera/color/image_raw
   # image_transport: raw
@@ -14,7 +15,8 @@ cam1:
   camera_model: pinhole
   intrinsics: [919.136934, 924.3388377, 642.2598606, 360.09546]
   distortion_model: radtan
-  distortion_coeffs: [-0.1515387899, -0.5644875325, 0.000270211402, 0.001208139743, 0.689991742, -0.3434836596, 0.1030293161, 0.02853861134]
+  distortion_coeffs: [0,0,0,0,0]
+  # distortion_coeffs: [-0.1515387899, -0.5644875325, 0.000270211402, 0.001208139743, 0.689991742, -0.3434836596, 0.1030293161, 0.02853861134]
   resolution: [1280, 720]
   image_topic: /back/camera/color/image_raw
   # image_transport: raw
@@ -26,7 +28,8 @@ cam2:
   camera_model: pinhole
   intrinsics: [918.4566019, 921.2444553, 658.2551131, 376.94991]
   distortion_model: radtan
-  distortion_coeffs: [-0.09793762722, -0.4010231332, 0.005371985064, 0.0009095148948, 0.4621032025, -0.2580323815, 0.1069447061, 0.03879501892]
+  distortion_coeffs: [0,0,0,0,0]
+  # distortion_coeffs: [-0.09793762722, -0.4010231332, 0.005371985064, 0.0009095148948, 0.4621032025, -0.2580323815, 0.1069447061, 0.03879501892]
   resolution: [1280, 720]
   image_topic: /right/camera/color/image_raw
   #for infra1 detecting

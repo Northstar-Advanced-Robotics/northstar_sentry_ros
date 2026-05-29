@@ -120,6 +120,10 @@ def generate_launch_description():
         name='arducam_node',
         output='screen',
         parameters=[arducam_config],
+        remappings=[
+            ('image_raw', f'/front/camera/color/image_raw'),
+            ('camera_info', f'/front/camera/color/camera_info')]
+
     )
 
     composable_nodes.extend([tagslam]) # sync_and_detect, 
@@ -175,8 +179,27 @@ def generate_launch_description():
                 'camera_name': f'{name}_cam',
                 'qos_image_topic': 'SENSOR_DATA'
             }],
-            extra_arguments=[{'use_intra_process_comms' : True}],
+           extra_arguments=[{'use_intra_process_comms' : True}],
         )
+
+        # rectify_node = ComposableNode(
+        #     package='isaac_ros_image_proc',
+        #     plugin='nvidia::isaac_ros::image_proc::RectifyNode',
+        #     name='rectify',
+        #     namespace='',
+        #     parameters=[{
+        #         # 'output_width': camera_width,
+        #         # 'output_height': camera_height,
+        #     }],
+        #     remappings=[
+        #         ('image_raw', f'/{name}/camera/color/image_raw'),
+        #         ('camera_info', f'/{name}/camera/color/camera_info'),
+        #         ('image_rect', f'/{name}/camera/color/image_rect'),
+        #         ('camera_info_rect', f'/{name}/camera/color/camera_info_rect')
+        #     ],
+
+        # )
+
 
         isaac_apriltag_node = ComposableNode(
             package='isaac_ros_apriltag',
@@ -194,8 +217,7 @@ def generate_launch_description():
                 ('image', f'/{name}/camera/color/image_raw'),
                 ('camera_info', f'/{name}/camera/color/camera_info'),
                 ('tag_detections', f'/{name}/detector/tags_nvidia')
-            ],
-            extra_arguments=[{'use_intra_process_comms' : False}],
+            ]
         )
 
         composable_nodes.extend([realsense_node, isaac_apriltag_node])
@@ -207,7 +229,7 @@ def generate_launch_description():
         package='rclcpp_components',
         executable='component_container_mt',
         composable_node_descriptions=composable_nodes,
-        output='log',
+        output='both',
         # arguments=['--ros-args', '--log-level', 'DEBUG']
     )
 
