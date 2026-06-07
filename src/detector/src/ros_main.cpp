@@ -29,6 +29,8 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
+
 
 #include "camera/camera.hpp"
 #include "detector.hpp"
@@ -43,7 +45,7 @@ std::atomic<long long> jetson_to_mcb_offset_us{0};
 class DetectorNode : public rclcpp::Node {
 private:
     message_filters::Subscriber<sensor_msgs::msg::Image> image_sub_;
-    message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_;
+    message_filters::Subscriber<geometry_msgs::msg::Vector3Stamped> gimbal_data_sub_;
     
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_;
     rclcpp::Publisher<uart_bridge::msg::AutoAim>::SharedPtr autoaim_pub_;
@@ -67,7 +69,7 @@ private:
     void info_callback(const sensor_msgs::msg::CameraInfo::ConstSharedPtr camInfo);
 
     void synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg, 
-                     const nav_msgs::msg::Odometry::ConstSharedPtr& odom_msg);
+                     const nav_msgs::msg::Odometry::ConstSharedPtr& gimbal_data_msg);
 
 
 public:
@@ -80,9 +82,9 @@ public:
             std::bind(&DetectorNode::info_callback, this, std::placeholders::_1));
 
         image_sub_.subscribe(this, "/front/camera/color/image_raw", rmw_qos_profile_sensor_data);
-        odom_sub_.subscribe(this, "/uart/odometry", rmw_qos_profile_sensor_data);
+        gimbal_data_sub_.subscribe(this, "/uart/gimbal_data", rmw_qos_profile_sensor_data);
 
-        sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(SyncPolicy(1000), image_sub_, odom_sub_);
+        sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(SyncPolicy(1000), image_sub_, gimbal_data_sub_);
         sync_->registerCallback(std::bind(&DetectorNode::synced_callback, this, std::placeholders::_1, std::placeholders::_2));
 
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
@@ -122,7 +124,7 @@ void DetectorNode::info_callback(const sensor_msgs::msg::CameraInfo::ConstShared
 }
 
 void DetectorNode::synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg, 
-                     const nav_msgs::msg::Odometry::ConstSharedPtr& odom_msg) 
+                     const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr& gimbal_data_msg) 
 {
     // SAFETY CHECK: Drop frames until camera_info initializes the detector
     if (!recievedCameraInfo || !detector || !pnp_solver) {
@@ -131,21 +133,8 @@ void DetectorNode::synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr
         return;
     }
 
-    tf2::Quaternion q(
-        odom_msg->pose.pose.orientation.x,
-        odom_msg->pose.pose.orientation.y,
-        odom_msg->pose.pose.orientation.z,
-        odom_msg->pose.pose.orientation.w);
-
-    tf2::Matrix3x3 m(q);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);    
-    // RCLCPP_INFO(this->get_logger(), "Gimbal State (deg): R:%.2f P:%.2f Y:%.2f", 
-    //         roll * 180.0 / M_PI, 
-    //         pitch * 180.0 / M_PI, 
-    //         yaw * 180.0 / M_PI);    
-    gimbal_state.yaw = yaw;
-    gimbal_state.pitch = pitch;
+    gimbal_state.yaw = gimbal_data_msg[2];
+    gimbal_state.pitch = gimbal_data_msg[1];
 
     // 3. Process Timing
     auto now = std::chrono::steady_clock::now();
