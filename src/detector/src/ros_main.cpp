@@ -51,7 +51,7 @@ private:
     rclcpp::Publisher<uart_bridge::msg::AutoAim>::SharedPtr autoaim_pub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
 
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, nav_msgs::msg::Odometry> SyncPolicy;
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, geometry_msgs::msg::Vector3Stamped> SyncPolicy;
     std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
 
     double dt;
@@ -69,7 +69,7 @@ private:
     void info_callback(const sensor_msgs::msg::CameraInfo::ConstSharedPtr camInfo);
 
     void synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg, 
-                     const nav_msgs::msg::Odometry::ConstSharedPtr& gimbal_data_msg);
+                     const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr& gimbal_data_msg);
 
 
 public:
@@ -133,9 +133,9 @@ void DetectorNode::synced_callback(const sensor_msgs::msg::Image::ConstSharedPtr
         return;
     }
 
-    gimbal_state.yaw = gimbal_data_msg[2];
-    gimbal_state.pitch = gimbal_data_msg[1];
-
+    gimbal_state.yaw = gimbal_data_msg->vector.z;
+    gimbal_state.pitch = gimbal_data_msg->vector.y;
+    
     // 3. Process Timing
     auto now = std::chrono::steady_clock::now();
     double dt = std::chrono::duration<double>(now - last_time).count();

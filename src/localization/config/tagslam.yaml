@@ -240,7 +240,7 @@ bodies:
       is_static: false
       publish_tf: false
       odom_frame_id: "rig"
-      # odom_topic: "/uart/odometry" #actuly works now but its bad
+      odom_topic: "/uart/odometry" #actuly works now but its bad
       T_body_odom:
         position:
           x:  0
