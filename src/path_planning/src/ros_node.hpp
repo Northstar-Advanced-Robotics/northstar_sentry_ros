@@ -44,6 +44,7 @@ public:
         grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("planner/map", 1);
         bezier_data_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("planner/bezier_curve", 10);
 
+        control_points_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/control_points", 10);
         bezier_published_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/published_bezier", 10);
         bezier_current_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
 
@@ -88,8 +89,8 @@ public:
         return AutoPathing::CubicBezier(
             thetaStar->ConvertGridToWorld(bezier.start), 
             thetaStar->ConvertGridToWorld(bezier.end), 
-            thetaStar->ConvertGridToWorld(bezier.controlEnd), 
-            thetaStar->ConvertGridToWorld(bezier.controlStart)
+            thetaStar->ConvertGridToWorld(bezier.controlStart), // KYS LIAM
+            thetaStar->ConvertGridToWorld(bezier.controlEnd)
         );
     }
 
@@ -117,7 +118,7 @@ public:
         bezier_published_marker.id = 0;
         bezier_published_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
         bezier_published_marker.action = visualization_msgs::msg::Marker::ADD;
-        bezier_published_marker.scale.x = 0.02; 
+        bezier_published_marker.scale.x = 0.025; 
         bezier_published_marker.color.r = 0.0; bezier_published_marker.color.g = 1.0; bezier_published_marker.color.b = 0.0; bezier_published_marker.color.a = 1.0; 
 
         for (int i = 0; i < BEZIER_VIS_SAMPLES; i++) {
@@ -135,7 +136,7 @@ public:
         bezier_current_marker.id = 0;
         bezier_current_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
         bezier_current_marker.action = visualization_msgs::msg::Marker::ADD;
-        bezier_current_marker.scale.x = 0.02; 
+        bezier_current_marker.scale.x = 0.025; 
         bezier_current_marker.color.r = 1.0; bezier_current_marker.color.g = 0.0; bezier_current_marker.color.b = 0.0; bezier_current_marker.color.a = 0.8; 
 
         for (int i = 0; i < BEZIER_VIS_SAMPLES; i++) {
@@ -146,6 +147,23 @@ public:
             bezier_current_marker.points.push_back(p);
         }
 
+        visualization_msgs::msg::Marker points_marker;
+        points_marker.header = bezier_current_marker.header;
+        points_marker.ns = "controls";
+        points_marker.id = 1;
+        points_marker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+        points_marker.action = visualization_msgs::msg::Marker::ADD;
+        points_marker.scale.x = 0.1; points_marker.scale.y = 0.1; points_marker.scale.z = 0.1; // Small spheres
+        points_marker.color.r = 1.0; points_marker.color.g = 1.0; points_marker.color.b = 0.0; points_marker.color.a = 1.0;
+
+
+        geometry_msgs::msg::Point p1, p2;
+            p1.x = currentBezier.controlStart.x(); p1.y = currentBezier.controlStart.y(); p1.z = 0.2;
+            p2.x = currentBezier.controlEnd.x();   p2.y = currentBezier.controlEnd.y();   p2.z = 0.2;
+            points_marker.points.push_back(p1);
+            points_marker.points.push_back(p2);
+
+        control_points_pub_->publish(points_marker);
         bezier_published_visualizer_pub_->publish(bezier_published_marker);
         bezier_current_visualizer_pub_->publish(bezier_current_marker);
     }
@@ -244,6 +262,7 @@ private:
     const float GRID_PUB_WAIT = 3.0f;
 
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr bezier_data_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr control_points_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_published_visualizer_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_current_visualizer_pub_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_pub_;
