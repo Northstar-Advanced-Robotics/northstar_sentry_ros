@@ -16,7 +16,8 @@ def generate_launch_description():
     ekf_global_config = os.path.join(pkg_share, 'config', 'ekf_global.yaml')
     arducam_config = os.path.join(pkg_share, 'config', 'arducam.yaml')
     qos_overrides_config = os.path.join(pkg_share, 'config', 'qos_overrides.yaml')
-      
+    rviz_config = '/home/ubuntu/realsense_ws/good_config.rviz'
+
     composable_nodes = []
     tf_nodes = []
 
@@ -240,6 +241,14 @@ def generate_launch_description():
         name="tag_translator"
     )
 
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', rviz_config],
+        output='screen'
+    )
+
     return launch.LaunchDescription([container,
                                      uart_bridge,
                                      arducam,
@@ -249,4 +258,5 @@ def generate_launch_description():
                                      ekf_global_node,
                                      cov_filter,
                                      translator_node,
+                                     rviz_node,
                                      *tf_nodes])
