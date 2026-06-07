@@ -6,6 +6,8 @@
 #include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/int32.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
+
 
 #include <cstdio>
 #include <memory> // Added for std::unique_ptr
@@ -42,6 +44,12 @@ private:
     // FIX: transfrom subscriber to rig form odom. We need its
     // positon
 
+    double pos_x_ = 0.0;
+    double pos_y_ = 0.0;
+    rclcpp::Time last_odom_time_;
+    bool have_last_odom_ = false;
+
+
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::unique_ptr<tf2_ros::TransformListener> tf2_listener;
     rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr
@@ -52,11 +60,12 @@ private:
     rclcpp::Subscription<uart_bridge::msg::AutoAim>::SharedPtr autoaim_sub_;
 
     rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr alive_pub_;
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_tagslam_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr gimbal_data_pub_;
     rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr autopath_pub_;
 
-    rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::TimerBase::SharedPtr odom_timer_;
+    rclcpp::TimerBase::SharedPtr odom_from_mcb_timer_;
+    rclcpp::TimerBase::SharedPtr odom_to_mcb_timer_;
 
     // uart thingies
     src::uart::OdometryMessage odom_msg;
@@ -95,67 +104,65 @@ private:
         uart_->send(std::make_unique<src::uart::AutoAimMessage>(autoaim_msg));
     }
 
-    void publish_odom() {
-        nav_msgs::msg::Odometry odom_msg_ros;
+void publish_odom() {
+    nav_msgs::msg::Odometry odom_msg_ros;
+    geometry_msgs::msg::Vector3Stamped gimbal_data;
 
-        long long mcb_generation_time_us = odom_msg.timestamp;
+    long long mcb_generation_time_us = odom_msg.timestamp;
+    long long offset_us = jetson_to_mcb_offset_us.load();
+    long long true_jetson_time_us = mcb_generation_time_us + offset_us;
+    rclcpp::Time true_ros_time(true_jetson_time_us * 1000);
 
-        long long offset_us = jetson_to_mcb_offset_us.load();
-        long long true_jetson_time_us = mcb_generation_time_us + offset_us;
+    double yaw = -odom_msg.yaw;
 
-        rclcpp::Time true_ros_time(true_jetson_time_us * 1000);
-
-        odom_msg_ros.header.stamp = true_ros_time;
-        odom_msg_ros.header.frame_id = "odom";
-        odom_msg_ros.child_frame_id = "base_link";
-
-        double global_vx = odom_msg.vel_y;
-        double global_vy = -odom_msg.vel_x;
-
-        double yaw = -odom_msg.yaw;
-
-        double local_vx = (global_vx * cos(yaw)) + (global_vy * sin(yaw));
-        double local_vy = -(global_vx * sin(yaw)) + (global_vy * cos(yaw));
-
-        tf2::Quaternion q;
-        q.setRPY(0, odom_msg.pitch, -odom_msg.yaw);
-        
-        odom_msg_ros.pose.pose.orientation.x = q.getX();
-        odom_msg_ros.pose.pose.orientation.y = q.getY();
-        odom_msg_ros.pose.pose.orientation.z = q.getZ();
-        odom_msg_ros.pose.pose.orientation.w = q.getW();
-
-        odom_msg_ros.twist.twist.linear.x = local_vx;
-        odom_msg_ros.twist.twist.linear.y = local_vy;
-        
-        odom_msg_ros.pose.pose.position.z = 0.0;
+    gimbal_data.header.stamp = true_ros_time;
+    gimbal_data.header.frame_id = "base_link";
+    gimbal_data.vector.x = 0.0;               // roll (unused)
+    gimbal_data.vector.y = odom_msg.pitch;    // pitch
+    gimbal_data.vector.z = -yaw;               // yaw
+    gimbal_data_pub_->publish(gimbal_data);
 
 
-        // odom_msg.twist.twist.angular.x =
-        // odom_msg.roll_vel;
-        // odom_msg.twist.twist.angular.y =
-        // odom_msg.pitch_vel;
-        odom_msg_ros.twist.twist.angular.z =
-        -odom_msg.yaw_vel;
+    odom_msg_ros.header.stamp = true_ros_time;
+    odom_msg_ros.header.frame_id = "odom";
+    odom_msg_ros.child_frame_id = "base_link";
 
-        odom_msg_ros.pose.covariance[0] = 0.01;    // X pos covariance
-        odom_msg_ros.pose.covariance[7] = 0.01;    // Y pos covariance
-        odom_msg_ros.pose.covariance[14] = 1000.0; // Z (High error because we
-                                                   // don't measure Z)
-        odom_msg_ros.pose.covariance[21] = 1000.0; // Roll
-        odom_msg_ros.pose.covariance[28] = 1000.0; // Pitch
-        odom_msg_ros.pose.covariance[35] = 0.01;   // Yaw (Turning error
-                                                   // accumulates fast)
+    // velocities in the fixed odom frame (your existing "global" convention)
+    double global_vx = odom_msg.vel_y;
+    double global_vy = -odom_msg.vel_x;
 
-        odom_msg_ros.twist.covariance[0] = 0.01; // Vx
-        odom_msg_ros.twist.covariance[7] = 0.01; // Vy
-        odom_msg_ros.twist.covariance[14] = 1000.0;
-        odom_msg_ros.twist.covariance[21] = .01;
-        odom_msg_ros.twist.covariance[28] = .01;
-        odom_msg_ros.twist.covariance[35] = .01; // Vyaw
-
-        odometry_pub_->publish(odom_msg_ros);
+    // --- integrate global velocity into an accumulated odom-frame position ---
+    if (have_last_odom_) {
+        double dt = (true_ros_time - last_odom_time_).seconds();
+        if (dt > 0.0 && dt < 1.0) {            // guard against bad/duplicate stamps
+            pos_x_ += global_vx * dt;
+            pos_y_ += global_vy * dt;
+        }
     }
+    last_odom_time_ = true_ros_time;
+    have_last_odom_ = true;
+
+    odom_msg_ros.pose.pose.position.x = pos_x_;
+    odom_msg_ros.pose.pose.position.y = pos_y_;
+    odom_msg_ros.pose.pose.position.z = 0.0;
+
+    // orientation: yaw only (see note on pitch below)
+    tf2::Quaternion q;
+    q.setRPY(0, 0, yaw);
+    odom_msg_ros.pose.pose.orientation.x = q.getX();
+    odom_msg_ros.pose.pose.orientation.y = q.getY();
+    odom_msg_ros.pose.pose.orientation.z = q.getZ();
+    odom_msg_ros.pose.pose.orientation.w = q.getW();
+
+    // twist still fine to publish for other consumers; TagSLAM ignores it
+    double local_vx =  (global_vx * cos(yaw)) + (global_vy * sin(yaw));
+    double local_vy = -(global_vx * sin(yaw)) + (global_vy * cos(yaw));
+    odom_msg_ros.twist.twist.linear.x  = local_vx;
+    odom_msg_ros.twist.twist.linear.y  = local_vy;
+    odom_msg_ros.twist.twist.angular.z = -odom_msg.yaw_vel;
+
+    odometry_tagslam_pub_->publish(odom_msg_ros);
+}
 
     void transform_callback() {
         geometry_msgs::msg::TransformStamped transform;
@@ -207,8 +214,12 @@ public:
             "uart/heartbeat", rclcpp::SensorDataQoS());
         rclcpp::QoS qos_profile(10);
         qos_profile.reliable(); // needed like this for tagslam
-        odometry_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
+        odometry_tagslam_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
             "uart/odometry", qos_profile);
+
+        gimbal_data_pub_ = this->create_publisher<geometry_msgs::msg::Vector3Stamped>("uart/gimbal_data", 10);
+
+
 
         bezier_sub_ =
             this->create_subscription<std_msgs::msg::Float32MultiArray>(
@@ -228,7 +239,7 @@ public:
         //         this,
         //                   std::placeholders::_1));
 
-        odom_timer_ = this->create_wall_timer(
+        odom_to_mcb_timer_ = this->create_wall_timer(
             10ms, std::bind(&UartBridge::transform_callback, this));
 
         tf2_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -287,7 +298,7 @@ public:
             }
         });
 
-        timer_ = this->create_wall_timer(
+        odom_from_mcb_timer_ = this->create_wall_timer(
             2ms, std::bind(&UartBridge::publish_odom, this));
     }
 };
