@@ -299,7 +299,7 @@ public:
         });
 
         odom_from_mcb_timer_ = this->create_wall_timer(
-            2ms, std::bind(&UartBridge::publish_odom, this));
+            10ms, std::bind(&UartBridge::publish_odom, this));
     }
 };
 

@@ -13,7 +13,7 @@ def generate_launch_description():
     tagslam_config = os.path.join(pkg_share, 'config', 'tagslam.yaml')
     camera_poses_config = os.path.join(pkg_share, 'config', 'camera_poses.yaml')
     ekf_local_config = os.path.join(pkg_share, 'config', 'ekf_local.yaml')
-    ekf_global_config = os.path.join(pkg_share, 'config', 'ekf_global.yaml')
+    ekf_config = os.path.join(pkg_share, 'config', 'ekf_combined.yaml')
     arducam_config = os.path.join(pkg_share, 'config', 'arducam.yaml')
     qos_overrides_config = os.path.join(pkg_share, 'config', 'qos_overrides.yaml')
     rviz_config = '/home/ubuntu/realsense_ws/good_config.rviz'
@@ -98,13 +98,13 @@ def generate_launch_description():
         remappings=[('odometry/filtered', 'odometry/local')]
     )
 
-    # Global EKF (map -> odom)
-    ekf_global_node = Node(
+    # Only EKF (map -> base_link)
+    ekf_node = Node(
         package='robot_localization',
         executable='ekf_node',
-        name='ekf_global_node',
+        name='ekf_node',
         output='screen',
-        parameters=[ekf_global_config],
+        parameters=[ekf_config],
         remappings=[('odometry/filtered', 'odometry/global')] # Prevents topic collision with local EKF
     )
 
@@ -254,8 +254,8 @@ def generate_launch_description():
                                      arducam,
                                      detector,
                                      path_planning,
-                                     ekf_local_node,
-                                     ekf_global_node,
+                                    #  ekf_local_node,
+                                     ekf_node,
                                      cov_filter,
                                      translator_node,
                                      rviz_node,
