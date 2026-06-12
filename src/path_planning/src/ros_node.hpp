@@ -200,12 +200,15 @@ public:
     }
 
     void update() {
-        if (!hasRobotPos) return;
+        if (!hasRobotPos) { return; }
 
         rclcpp::Time currentTime = this->now();
         thetaStar->updateDynamicObstacles();
         currentWorldGoalPos = calculateWorldGoalPos();
         currentGridGoalPos = thetaStar->ConvertWorldToGrid(currentWorldGoalPos);
+
+        Eigen::Vector2i currentRobotGridPos = thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()});
+        if (thetaStar->isNodeValidAndEmpty(currentRobotGridPos)) { lastValidRobotGridPos = currentRobotGridPos; }
 
         AutoPathing::CubicBezier currentBezier = calculateCurrentBezierToGoal();
 
@@ -245,8 +248,10 @@ public:
     }
 
     AutoPathing::CubicBezier calculateCurrentBezierToGoal() {
+
+
         std::vector<Eigen::Vector2i> fullGridPath = thetaStar->FindPath(
-            thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()}), 
+            lastValidRobotGridPos, 
             currentGridGoalPos
         );
         
@@ -295,6 +300,8 @@ private:
 
     bool hasRobotPos = false;
     Eigen::Vector2f currentRobotWorldPos;
+    Eigen::Vector2i lastValidRobotGridPos;
+
     int currentHealth = 400;
     const int MAX_HEALTH = 400;
 
