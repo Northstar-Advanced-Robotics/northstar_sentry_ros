@@ -13,6 +13,7 @@
 #include <memory> // Added for std::unique_ptr
 #include <tf2/LinearMath/Quaternion.hpp>
 #include <tf2/time.hpp>
+#include <tf2/utils.h>
 #include <thread>
 
 #include <rclcpp/executors.hpp>
@@ -119,7 +120,7 @@ void publish_odom() {
     gimbal_data.header.frame_id = "base_link";
     gimbal_data.vector.x = 0.0;               // roll (unused)
     gimbal_data.vector.y = odom_msg.pitch;    // pitch
-    gimbal_data.vector.z = -yaw;               // yaw
+    gimbal_data.vector.z = yaw;               // yaw
     gimbal_data_pub_->publish(gimbal_data);
 
 
@@ -164,47 +165,36 @@ void publish_odom() {
     odometry_tagslam_pub_->publish(odom_msg_ros);
 }
 
-    void transform_callback() {
+void transform_callback() {
         geometry_msgs::msg::TransformStamped transform;
 
         try {
-            // Just grab the
-            // absolute newest
-            // transform available
-            // right now
+            // Get the absolute newest transform available right now
             transform = tf2_buffer_->lookupTransform(
                 "map", "base_link",
                 tf2::TimePointZero // This means "give me the latest"
             );
 
-            // Extract your X/Y
-            // offsets!
-            double x_offset = transform.transform.translation.x;
-            double y_offset = transform.transform.translation.y;
+            rclcpp::Time ros_time = transform.header.stamp;
+            long long ros_time_us = ros_time.nanoseconds() / 1000;
 
-            vision_localization_msg.x = x_offset;
-            vision_localization_msg.y = y_offset;
+            long long offset_us = jetson_to_mcb_offset_us.load();
+
+            long long mcb_historical_time_us = ros_time_us - offset_us;
+            // ----------------------------
+
+            vision_localization_msg.x = transform.transform.translation.x;
+            vision_localization_msg.y = transform.transform.translation.y;
+            vision_localization_msg.heading = tf2::getYaw(transform.transform.rotation);
+
+            vision_localization_msg.timestamp = (uint32_t)mcb_historical_time_us;
 
             uart_->send(std::make_unique<src::uart::VisionLocalizationMessage>(
                 vision_localization_msg));
 
-            // Do your logic here
-            // (e.g., send velocity
-            // commands)
-            // RCLCPP_INFO(this->get_logger(),
-            //             "Current Offset: "
-            //             "X: %f, Y: %f",
-            //             x_offset, y_offset);
-
         } catch (const tf2::TransformException &ex) {
-            // It's normal for this
-            // to fail occasionally
-            // if TF packets drop
-            // or arrive late
             RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                                 "Could not get "
-                                 "transform: %s",
-                                 ex.what());
+                                 "Could not get transform: %s", ex.what());
         }
     };
 
@@ -240,7 +230,7 @@ public:
         //                   std::placeholders::_1));
 
         odom_to_mcb_timer_ = this->create_wall_timer(
-            10ms, std::bind(&UartBridge::transform_callback, this));
+            333ms, std::bind(&UartBridge::transform_callback, this));
 
         tf2_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf2_listener =

@@ -6,7 +6,9 @@ namespace src::uart
 {
 VisionLocalizationMessage::VisionLocalizationMessage()
     : x(0),
-      y(0)
+      y(0),
+      heading(0),
+      timestamp(0)
 {
 }
 
@@ -19,10 +21,12 @@ VisionLocalizationMessage VisionLocalizationMessage::get_vision_localization_mes
 
 std::vector<uint8_t> VisionLocalizationMessage::serialize()
 {
-    std::vector<uint8_t> bytes(8);
+    std::vector<uint8_t> bytes(16);
 
     std::memcpy(bytes.data() + 0, &x, sizeof(x));
     std::memcpy(bytes.data() + 4, &y, sizeof(y));
+    std::memcpy(bytes.data() + 8, &heading, sizeof(heading));
+    std::memcpy(bytes.data() + 12, &timestamp, sizeof(timestamp));
 
     return bytes;
 }

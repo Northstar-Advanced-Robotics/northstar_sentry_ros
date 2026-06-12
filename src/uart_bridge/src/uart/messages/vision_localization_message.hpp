@@ -20,7 +20,8 @@ public:
 
     std::vector<uint8_t> serialize() override;
 
-    float x, y;
+    float x, y, heading;
+    uint32_t timestamp;
 };
 
 }  // namespace src::uart
