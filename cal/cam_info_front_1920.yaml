@@ -1,0 +1,26 @@
+image_width: 1920
+image_height: 1200
+camera_name: arducam_b0495_(usb3_2.3mp)
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [1210.910175, 0.0,         953.482266,
+         0.0,         1218.731136, 610.3210157,
+         0.0,         0.0,         1.0]
+distortion_model: rational_polynomial
+distortion_coefficients:
+  rows: 1
+  cols: 8
+  data: [-0.04070207298, -0.06204463806, -0.0007782182427, -0.0006697106748, -0.1119155101, 0.0367946723, 0.002582566455, -0.1655136568]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [1210.910175, 0.0,         953.482266,  0.0,
+         0.0,         1218.731136, 610.3210157, 0.0,
+         0.0,         0.0,         1.0,         0.0]

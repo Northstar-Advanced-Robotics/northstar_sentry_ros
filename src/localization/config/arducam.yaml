@@ -1,18 +1,18 @@
 arducam_node:
   ros__parameters:
     camera_name: "front_camera"
-    framerate: 80.0
+    framerate: 50.0
     pixel_format: YUYV
     video_device: "/dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_202500915_0001-video-index0"
-    image_size: [960, 600]
+    image_size: [1920, 1200]
 
     auto_exposure: 1
-    brightness: 0
+    brightness: 6
     contrast: 10
     saturation: 10
     white_balance_automatic: false
     white_balance_temperature: 2500
   
     gain: 168
-    exposure_time_absolute: 83
-    camera_info_url: "file:///home/ubuntu/realsense_ws/cal/cam_info_front.yaml"
+    exposure_time_absolute: 39
+    camera_info_url: "file:///home/ubuntu/realsense_ws/cal/cam_info_front_1920.yaml"

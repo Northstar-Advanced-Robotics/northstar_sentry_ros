@@ -4,6 +4,8 @@ To get images use ros to take images:
 
 run 
 ros2 run image_view image_saver --ros-args -p save_all_image:=false -p filename_format:="cam_image_%04d.png" -r image:=/left/camera/color/image_raw
+
+ros2 run image_view image_saver --ros-args -p save_all_image:=true -p filename_format:="cal/cal_images_front_1920/cam_image_%04d.png" -r image:=/image_raw
 and for each image run 
 ros2 service call /save std_srvs/srv/Empty
 
