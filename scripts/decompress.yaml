@@ -1,0 +1,8 @@
+output_bags:
+  - uri: uncompressed_bag
+    storage_id: mcap # Change to 'sqlite3' if your original bag uses .db3 files
+    topics:
+      - /left/camera/color/image_raw
+      - /right/camera/color/image_raw
+      - /front/camera/color/image_raw
+      - /back/camera/color/image_raw

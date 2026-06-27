@@ -35,7 +35,7 @@ if [ -e "$arducam" ] && [ -e "$cam1" ] && [ -e "$cam2" ] && [ -e "$cam3" ]; then
     --name="ros-container" \
     -v="${HOME}/.tar-installs:/devtools" \
     -v="${HOME}/.config/helix:/home/ubuntu/.config/helix" \
-    sentry:latest bash -c "source /opt/ros/humble/setup.bash && ./run.sh localization"
+    sentry:latest bash -c "source /opt/ros/humble/setup.bash && ./scripts/run.sh localization"
 else
   echo "A camera is not plugged in"
 fi

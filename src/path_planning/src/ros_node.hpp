@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <memory>
+#include <std_msgs/msg/int32.hpp>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
@@ -34,6 +35,24 @@ using namespace std::chrono_literals;
 
 namespace src::viz {
 
+enum class AutoDriveState {
+    GoingToBase,
+    GoingToMid,
+    InMid
+};
+
+enum class MidCycleType {
+    Mid,
+    Top,
+    Bottom
+};
+
+enum class TravelType {
+    Ramp,
+    Bend,
+    Bump
+};
+
 class RosVisualizer : public rclcpp::Node {
 public:
     RosVisualizer() : Node("path_planner_visualizer") {
@@ -49,6 +68,7 @@ public:
         bezier_current_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
 
         goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&RosVisualizer::goal_callback, this, std::placeholders::_1));
+        robotid_sub_ = this->create_subscription<std_msgs::msg::Int32>("uart/robotid", 10, std::bind(&RosVisualizer::robotid_callback, this, std::placeholders::_1));
 
         thetaStar = new src::AutoPathing::ThetaStar();
         lastBezierPublishTime = this->now();
@@ -224,31 +244,42 @@ public:
         }
     }
 
-    std::vector<Eigen::Vector2f> goalPoses = { Eigen::Vector2f(-4.5f, 0.0f), Eigen::Vector2f(-4.5f, 2.5f), Eigen::Vector2f(-3.05f, 1.45f) };
-    int goalIndex = 0;
-    float goalError = 0.025; // meters
     Eigen::Vector2f calculateWorldGoalPos() {
-        Eigen::Vector2f goal = goalPoses[goalIndex];
-        float distanceToGoal = (goal - currentRobotWorldPos).norm();
-
-        if (distanceToGoal <= goalError)
-        {
-            goalIndex++; 
-            if (goalIndex >= goalPoses.size()) { goalIndex = 0; }
-
-            goal = goalPoses[goalIndex];
-        }
-        
-        return goal;
-
         float healthPercentage = (float)currentHealth / MAX_HEALTH;
 
-        if (healthPercentage < 0.3f) { return leftTeam ? LEFT_ALL_ZONE : RIGHT_ALL_ZONE; }
-        else { return MID_PATH_OUTLINE.evaluatePath(currentRobotWorldPos); }
+        if (healthPercentage < 0.3f)
+        { 
+            if (currentState != AutoDriveState::GoingToBase) 
+            {
+                currentState = AutoDriveState::GoingToBase;
+                start_path(GetRetreatPath());
+            }
+        }
+        else 
+        { 
+            if (currentState == AutoDriveState::GoingToBase && healthPercentage == 1) 
+            { 
+                if (currentState != AutoDriveState::GoingToMid)
+                {
+                    currentState = AutoDriveState::GoingToMid; 
+                    start_path(GetPushPath());
+                }
+            }
+
+            if (currentState == AutoDriveState::GoingToMid && currentPathOutline.isPathFinished())
+            {
+                if (currentState != AutoDriveState::InMid) 
+                { 
+                    currentState = AutoDriveState::InMid; 
+                    start_path(GetCyclePath());
+                }
+            }
+        }
+
+        return currentPathOutline.evaluatePath(currentRobotWorldPos);
     }
 
     AutoPathing::CubicBezier calculateCurrentBezierToGoal() {
-
 
         std::vector<Eigen::Vector2i> fullGridPath = thetaStar->FindPath(
             lastValidRobotGridPos, 
@@ -263,6 +294,11 @@ public:
     }
 
 private:
+
+    const MidCycleType currentMidCycleType = MidCycleType::Top;
+    const TravelType currentPushType = TravelType::Ramp;
+    const TravelType currentRetreatType = TravelType::Ramp;
+
     const int BEZIER_VIS_SAMPLES = 24;
     const float GRID_PUB_WAIT = 3.0f;
 
@@ -273,6 +309,7 @@ private:
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_pub_;
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr robotid_sub_;
 
     void goal_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
         currentWorldGoalPos = Eigen::Vector2f(-msg->pose.position.y, msg->pose.position.x);
@@ -281,8 +318,14 @@ private:
                     currentWorldGoalPos.x(), currentWorldGoalPos.y());
     }
 
-    void pos_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    void robotid_callback(const std_msgs::msg::Int32::SharedPtr msg) {
+        leftTeam = msg->data < 100;
+    }
 
+    void start_path(PathOutline pathToStart)
+    {
+        currentPathOutline = pathToStart;
+        currentPathOutline.startPath();
     }
 
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
@@ -305,17 +348,69 @@ private:
     int currentHealth = 400;
     const int MAX_HEALTH = 400;
 
+    PathOutline currentPathOutline;
+    AutoDriveState currentState = AutoDriveState::GoingToBase;
+
     bool leftTeam = true;
 
     const Eigen::Vector2f LEFT_ALL_ZONE = Eigen::Vector2f(-5.3f, 0.0f);
-    const Eigen::Vector2f RIGHT_ALL_ZONE = Eigen::Vector2f(-5.3f, 0.0f);
+    const Eigen::Vector2f RIGHT_ALL_ZONE = Eigen::Vector2f(5.3f, 0.0f);
 
-    const Eigen::Vector2f MID_BL = Eigen::Vector2f(-1.0f, -1.0f);
-    const Eigen::Vector2f MID_BR = Eigen::Vector2f(1.0f, -1.0f);
-    const Eigen::Vector2f MID_TL = Eigen::Vector2f(-1.0f, 1.0f);
-    const Eigen::Vector2f MID_TR = Eigen::Vector2f(1.0f, 1.0f);
+    PathOutline MID_CYCLE_PATH = PathOutline({Eigen::Vector2f(-1.0f, 1.0f), Eigen::Vector2f(1.0f, -1.0f), Eigen::Vector2f(-1.0f, -1.0f), Eigen::Vector2f(1.0f, 1.0f)}, true);
 
-    PathOutline MID_PATH_OUTLINE = PathOutline({MID_TL, MID_BR, MID_BL, MID_TR}, true);
+    // CYCLE
+    PathOutline LEFT_MID_BOTTOM_CYCLE_PATH = PathOutline({Eigen::Vector2f(-1.7f, -1.47f), Eigen::Vector2f(-2.02f, -0.71f)}, true);
+    PathOutline LEFT_MID_TOP_CYCLE_PATH = PathOutline({Eigen::Vector2f(-0.6f, 1.82f), Eigen::Vector2f(-1.55f, 1.31f)}, true);
+    // LEFT TO MID
+    PathOutline LEFT_TO_MID_RAMP_PATH = PathOutline({Eigen::Vector2f(-4.16f, 2.54f), Eigen::Vector2f(-0.93f, 2.54f), Eigen::Vector2f(-0.82f, 1.33f)}, false);
+    PathOutline LEFT_TO_MID_BEND_PATH = PathOutline({Eigen::Vector2f(-4.28f, 1.69f), Eigen::Vector2f(-2.93f, -0.72f), Eigen::Vector2f(-1.31f, -0.49f)}, false);
+    PathOutline LEFT_TO_MID_BUMP_PATH = PathOutline({Eigen::Vector2f(-4.22f, -3.18f), Eigen::Vector2f(-1.64f, -1.54f)}, false);
+    // MID TO LEFT
+    PathOutline MID_TO_LEFT_RAMP_PATH = PathOutline({Eigen::Vector2f(-0.82f, 1.33f), Eigen::Vector2f(-0.93f, 2.54f), Eigen::Vector2f(-4.16f, 2.54f), LEFT_ALL_ZONE}, false);
+    PathOutline MID_TO_LEFT_BEND_PATH = PathOutline({Eigen::Vector2f(-1.31f, -0.49f), Eigen::Vector2f(-2.93f, -0.72f), Eigen::Vector2f(-4.28f, 1.69f), LEFT_ALL_ZONE}, false);
+    PathOutline MID_TO_LEFT_BUMP_PATH = PathOutline({Eigen::Vector2f(-1.64f, -1.54f), Eigen::Vector2f(-4.22f, -3.18f), LEFT_ALL_ZONE}, false);
+
+    // CYCLE
+    PathOutline RIGHT_MID_BOTTOM_CYCLE_PATH = PathOutline({Eigen::Vector2f(1.7f, -1.47f), Eigen::Vector2f(2.02f, -0.71f)}, true);
+    PathOutline RIGHT_MID_TOP_CYCLE_PATH = PathOutline({Eigen::Vector2f(0.6f, 1.82f), Eigen::Vector2f(1.55f, 1.31f)}, true);
+    // RIGHT TO MID
+    PathOutline RIGHT_TO_MID_RAMP_PATH = PathOutline({Eigen::Vector2f(4.16f, 2.54f), Eigen::Vector2f(0.93f, 2.54f), Eigen::Vector2f(0.82f, 1.33f)}, false);
+    PathOutline RIGHT_TO_MID_BEND_PATH = PathOutline({Eigen::Vector2f(4.28f, 1.69f), Eigen::Vector2f(2.93f, -0.72f), Eigen::Vector2f(1.31f, -0.49f)}, false);
+    PathOutline RIGHT_TO_MID_BUMP_PATH = PathOutline({Eigen::Vector2f(4.22f, -3.18f), Eigen::Vector2f(1.64f, -1.54f)}, false);
+    // MID TO RIGHT
+    PathOutline MID_TO_RIGHT_RAMP_PATH = PathOutline({Eigen::Vector2f(0.82f, 1.33f), Eigen::Vector2f(0.93f, 2.54f), Eigen::Vector2f(4.16f, 2.54f), RIGHT_ALL_ZONE}, false);
+    PathOutline MID_TO_RIGHT_BEND_PATH = PathOutline({Eigen::Vector2f(1.31f, -0.49f), Eigen::Vector2f(2.93f, -0.72f), Eigen::Vector2f(4.28f, 1.69f), RIGHT_ALL_ZONE}, false);
+    PathOutline MID_TO_RIGHT_BUMP_PATH = PathOutline({Eigen::Vector2f(1.64f, -1.54f), Eigen::Vector2f(4.22f, -3.18f), RIGHT_ALL_ZONE}, false);
+
+    PathOutline GetCyclePath()
+    {
+        switch(currentMidCycleType)
+        {
+            case MidCycleType::Top: return leftTeam ? LEFT_MID_TOP_CYCLE_PATH : RIGHT_MID_TOP_CYCLE_PATH;
+            case MidCycleType::Bottom: return leftTeam ? LEFT_MID_BOTTOM_CYCLE_PATH : RIGHT_MID_BOTTOM_CYCLE_PATH;
+            default: return MID_CYCLE_PATH;
+        }
+    }
+
+    PathOutline GetPushPath()
+    {
+        switch(currentPushType)
+        {
+            case TravelType::Bump: return leftTeam ? LEFT_TO_MID_BUMP_PATH : RIGHT_TO_MID_BUMP_PATH;
+            case TravelType::Bend: return leftTeam ? LEFT_TO_MID_BEND_PATH : RIGHT_TO_MID_BEND_PATH;
+            default:  return leftTeam ? LEFT_TO_MID_RAMP_PATH : RIGHT_TO_MID_RAMP_PATH;
+        }
+    }
+
+    PathOutline GetRetreatPath()
+    {
+        switch(currentRetreatType)
+        {
+            case TravelType::Bump: return leftTeam ? MID_TO_LEFT_BUMP_PATH : MID_TO_RIGHT_BUMP_PATH;
+            case TravelType::Bend: return leftTeam ? MID_TO_LEFT_BEND_PATH : MID_TO_RIGHT_BEND_PATH;
+            default:  return leftTeam ? MID_TO_LEFT_RAMP_PATH : MID_TO_RIGHT_RAMP_PATH;
+        }
+    }
 };
 
 } // namespace src::viz

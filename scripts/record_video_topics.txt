@@ -1,0 +1,3 @@
+/right/camera/color/image_raw
+/left/camera/color/image_raw
+/back/camera/color/image_raw

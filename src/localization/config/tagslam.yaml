@@ -13,7 +13,7 @@ tagslam_parameters:
   # a full graph optimization (default: 50) # NOTE: commented out below
   # max_num_incremental_opt: 50000
   # estimated error of tag corner detector
-  pixel_noise: 1.0
+  pixel_noise: 5.0
   # maximum allowed subgraph error. If error is above that,
   # the frame is thrown away, the measurement ignored.
   max_subgraph_error: 1000.0
@@ -28,10 +28,10 @@ tagslam_parameters:
   use_approximate_sync: true
   sync_queue_size: 10
 body_defaults:
-  position_noise: 0.05
+  position_noise: 0.01
   rotation_noise: 0.01
 # default_body: no_body   # don't specify  default body: ignore all tags not listed
-default_body: map
+# default_body: map
 bodies:
   - map:
       is_static: true
@@ -241,6 +241,8 @@ bodies:
       publish_tf: false
       odom_frame_id: "base_link"
       odom_topic: "/uart/odometry" #actuly works now but its bad
+      odom_translation_noise: 0.01   # m — small = trust odom translation tightly
+      odom_rotation_noise: 0.01      # rad — small = trust odom rotation tightly
       T_body_odom:
         position:
           x:  0

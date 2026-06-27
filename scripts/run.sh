@@ -1,5 +1,7 @@
 #!/bin/bash
 
+HERE=$(dirname ${BASH_SOURCE[0]})
+
 if [[ "$USER" == 'northstar_agx' ]]; then
   echo "run this inside the container"
   exit 1
@@ -11,5 +13,5 @@ if (("$#" != 1)); then
 fi
 
 colcon build --symlink-install --event-handlers console_direct+ --packages-up-to "$1" --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
-source install/setup.bash
+source ${HERE}/../install/setup.bash
 ros2 launch "$1" launch.py

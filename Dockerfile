@@ -34,6 +34,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         ros-${ROS_DISTRO}-ament-clang-format  \
         ros-${ROS_DISTRO}-isaac-ros-apriltag \
         ros-${ROS_DISTRO}-apriltag-msgs \
+        ros-${ROS_DISTRO}-rosbag2-storage-mcap \
+        ros-${ROS_DISTRO}-rosbag2-compression-zstd \
+        ros-${ROS_DISTRO}-rosbag2-to-video \
         libboost-all-dev  \
         libasio-dev \
         clangd \

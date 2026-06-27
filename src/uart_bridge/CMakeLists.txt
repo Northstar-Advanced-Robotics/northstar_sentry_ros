@@ -21,10 +21,12 @@ rosidl_get_typesupport_target(cpp_typesupport_target uart_bridge "rosidl_typesup
 add_executable(uart_bridge_node
   src/uart_bridge_node.cpp
   src/uart/messages/odometry_message.cpp
+  src/uart/messages/robot_id_message.cpp
   src/uart/messages/autoaim_message.cpp
   src/uart/messages/alive_message.cpp
   src/uart/messages/auto_path_message.cpp
   src/uart/handlers/odometry_handler.cpp
+  src/uart/handlers/robot_id_handler.cpp
   src/uart/messages/vision_localization_message.cpp
   src/uart/messages/fly_sky_meassage.cpp
   src/uart/ibus_reader.cpp

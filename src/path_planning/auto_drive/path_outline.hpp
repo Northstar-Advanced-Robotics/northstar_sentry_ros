@@ -6,9 +6,11 @@
 class PathOutline
 {
 public:
-    const float MAX_POS_ERROR = 0.05f;
+    float MAX_POS_ERROR = 0.05f;
 
     PathOutline(std::vector<Eigen::Vector2f> outline, bool repeats) : outline(outline), repeats(repeats) { }
+
+    PathOutline() : outline({}), repeats(false) {}
 
     Eigen::Vector2f evaluatePath(Eigen::Vector2f currentRobotWorldPos)
     {
@@ -21,7 +23,11 @@ public:
             if (pathIndex >= outline.size()) 
             { 
                 if (repeats) { pathIndex = 0; }
-                else { pathIndex = outline.size() - 1; }
+                else 
+                { 
+                    pathIndex = outline.size() - 1; 
+                    pathFinished = true;
+                }
             }
 
             goal = outline[pathIndex];
@@ -30,9 +36,14 @@ public:
         return goal;
     }
 
+    void startPath() { pathFinished = false; }
+
+    bool isPathFinished() { return pathFinished; }
+
 private:
     int pathIndex = 0;
     bool repeats = false;
+    bool pathFinished = false;
 
     std::vector<Eigen::Vector2f> outline;
 };
