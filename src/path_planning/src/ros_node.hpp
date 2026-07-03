@@ -436,7 +436,7 @@ private:
     PathOutline* LEFT_TO_MID_BEND_PATH =
         new PathOutline({Eigen::Vector2f(-4.64f, 1.54f), Eigen::Vector2f(-1.83f, 0.33f)}, false);
     PathOutline* LEFT_TO_MID_BUMP_PATH =
-        new PathOutline({Eigen::Vector2f(-4.22f, -3.18f), Eigen::Vector2f(-1.64f, -1.54f)}, false);
+        new PathOutline({Eigen::Vector2f(-4.17f, -2.58f), Eigen::Vector2f(-1.64f, -1.54f)}, false);
     // MID TO LEFT
     PathOutline* MID_TO_LEFT_RAMP_PATH = new PathOutline(
         {Eigen::Vector2f(-0.82f, 1.33f),
@@ -448,7 +448,7 @@ private:
         {Eigen::Vector2f(-1.83f, 0.33f), Eigen::Vector2f(-4.64f, 1.54f), LEFT_ALL_ZONE},
         false);
     PathOutline* MID_TO_LEFT_BUMP_PATH = new PathOutline(
-        {Eigen::Vector2f(-1.64f, -1.54f), Eigen::Vector2f(-4.22f, -3.18f), LEFT_ALL_ZONE},
+        {Eigen::Vector2f(-1.64f, -1.54f), Eigen::Vector2f(-4.17f, -2.58f), LEFT_ALL_ZONE},
         false);
 
     // CYCLE
@@ -477,7 +477,7 @@ private:
         {Eigen::Vector2f(1.83f, 0.33f), Eigen::Vector2f(4.64f, 1.54f), RIGHT_ALL_ZONE},
         false);
     PathOutline* MID_TO_RIGHT_BUMP_PATH = new PathOutline(
-        {Eigen::Vector2f(1.64f, -1.54f), Eigen::Vector2f(4.22f, -3.18f), RIGHT_ALL_ZONE},
+        {Eigen::Vector2f(1.64f, -1.54f), Eigen::Vector2f(4.17f, -2.58f), RIGHT_ALL_ZONE},
         false);
 
     PathOutline* GetCyclePath()
