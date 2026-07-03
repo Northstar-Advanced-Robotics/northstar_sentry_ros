@@ -1,1 +1,21 @@
-/etc/systemd/system/localization.service
+[Unit]
+Description=Runs localization on startup
+# 1. Wait for the GUI to actually load before starting!
+After=graphical.target
+Wants=graphical.target
+
+[Service]
+# 2. You MUST run this as your user. Root cannot easily draw on your user's desktop.
+User=northstar_agx
+Group=northstar_agx
+
+# 3. Point to the primary monitor and pass the authentication file
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/northstar_agx/.Xauthority"
+
+ExecStart=/home/northstar_agx/Docker/realsense_ws/scripts/startup.sh
+Type=simple
+
+[Install]
+# 4. Bind it to the GUI target, not the headless multi-user target
+WantedBy=graphical.target

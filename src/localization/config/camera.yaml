@@ -15,9 +15,9 @@
     rgb_camera.color_profile: 1280x720x30
 
     rgb_camera.enable_auto_exposure: false
-    rgb_camera.exposure: 83
+    rgb_camera.exposure: 25
     rgb_camera.gain: 128
-    rgb_camera.brightness: 0
+    rgb_camera.brightness: 32
     rgb_camera.contrast: 50
     rgb_camera.gamma: 300
     rgb_camera.hue: 0

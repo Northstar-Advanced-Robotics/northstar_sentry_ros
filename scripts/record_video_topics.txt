@@ -1,3 +1,11 @@
 /right/camera/color/image_raw
+/right/camera/color/camera_info
 /left/camera/color/image_raw
+/left/camera/color/camera_info
 /back/camera/color/image_raw
+/back/camera/color/camera_info
+/uart/odometry
+/uart/robotid
+/uart/heartbeat
+/uart/gimbal_data
+/uart/health

@@ -163,12 +163,12 @@ void DetectorNode::apply_camera_color_config()
         params = {
             rclcpp::Parameter("auto_exposure", 1),  // 1=manual, 3=auto
             rclcpp::Parameter("white_balance_automatic", false),
-            rclcpp::Parameter("brightness", 2),
+            rclcpp::Parameter("brightness", 10),
             rclcpp::Parameter("contrast", 8),
-            rclcpp::Parameter("saturation", 3),
+            rclcpp::Parameter("saturation", 5),
             rclcpp::Parameter("white_balance_temperature", 4700),
             rclcpp::Parameter("gain", 168),
-            rclcpp::Parameter("exposure_time_absolute", 39),
+            rclcpp::Parameter("exposure_time_absolute", 15),
         };
     }
     else
@@ -176,14 +176,40 @@ void DetectorNode::apply_camera_color_config()
         params = {
             rclcpp::Parameter("auto_exposure", 1),  // 1=manual, 3=auto
             rclcpp::Parameter("white_balance_automatic", false),
-            rclcpp::Parameter("brightness", -3),
-            rclcpp::Parameter("contrast", 7),
-            rclcpp::Parameter("saturation", 3),
+            rclcpp::Parameter("brightness", 0),
+            rclcpp::Parameter("contrast", 4),
+            rclcpp::Parameter("saturation", 4),
             rclcpp::Parameter("white_balance_temperature", 5948),
             rclcpp::Parameter("gain", 168),
-            rclcpp::Parameter("exposure_time_absolute", 39),
+            rclcpp::Parameter("exposure_time_absolute", 20),
         };
     }
+
+    //     if (color)
+    // {  // red
+    //     camera->setBrightness(10);
+    //     camera->setContrast(8);
+    //     camera->setSaturation(5);
+    //     camera->setWhiteBalance(4700);
+    //     camera->setGain(168);
+    //     camera->setExposure(20);
+    // }
+    // else
+    // {
+    //     camera->setBrightness(0);
+    //     camera->setContrast(4);
+    //     camera->setSaturation(4);
+    //     camera->setWhiteBalance(5948);
+    //     camera->setGain(168);
+    //     camera->setExposure(30);
+    //     // camera->setBrightness(6);
+    //     // camera->setContrast(10);
+    //     // camera->setSaturation(10);
+    //     // camera->setWhiteBalance(2500);
+    //     // camera->setGain(168);
+    //     // camera->setExposure(39);
+    // }
+
     camera_param_client_->set_parameters(params);
     RCLCPP_INFO(
         this->get_logger(),

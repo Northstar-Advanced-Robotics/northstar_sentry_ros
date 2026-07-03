@@ -24,6 +24,7 @@
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
 #include <uart/handlers/odometry_handler.hpp>
+#include <uart/handlers/health_handler.hpp>
 #include <uart/messages/alive_message.hpp>
 #include <uart/messages/auto_path_message.hpp>
 #include <uart/messages/autoaim_message.hpp>
@@ -62,7 +63,8 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_tagslam_pub_;
     rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr gimbal_data_pub_;
     rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr autopath_pub_;
-    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr robotid_pub;
+    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr robotid_pub_;
+    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr health_pub_;
 
     rclcpp::TimerBase::SharedPtr odom_from_mcb_timer_;
     rclcpp::TimerBase::SharedPtr odom_to_mcb_timer_;
@@ -70,6 +72,7 @@ private:
 
     // uart thingies
     src::uart::OdometryMessage odom_msg;
+    src::uart::HealthMessage health_msg;
     src::uart::RobotIDMessage robotid_msg;
     src::uart::AutoAimMessage autoaim_msg;
     src::uart::AliveMessage alive_msg;
@@ -119,7 +122,7 @@ private:
             // Publish immediately, then hand off to publish_odom for late subscribers.
             std_msgs::msg::Int32 msg;
             msg.data = static_cast<int>(robotid_msg.robot_id);
-            robotid_pub->publish(msg);
+            robotid_pub_->publish(msg);
             return;
         }
         uart_->send(std::make_unique<src::uart::RobotIDMessage>(robotid_msg));
@@ -196,8 +199,12 @@ private:
         {
             std_msgs::msg::Int32 robotid_data;
             robotid_data.data = static_cast<int>(robotid_msg.robot_id);
-            robotid_pub->publish(robotid_data);
+            robotid_pub_->publish(robotid_data);
         }
+
+        std_msgs::msg::Int32 health_data;
+        health_data.data = health_msg.hp;
+        health_pub_->publish(health_data);
     }
 
     void transform_callback()
@@ -251,7 +258,8 @@ public:
         odometry_tagslam_pub_ =
             this->create_publisher<nav_msgs::msg::Odometry>("uart/odometry", qos_profile);
 
-        robotid_pub = this->create_publisher<std_msgs::msg::Int32>("uart/robotid", 10);
+        robotid_pub_ = this->create_publisher<std_msgs::msg::Int32>("uart/robotid", 10);
+        health_pub_ = this->create_publisher<std_msgs::msg::Int32>("uart/health", 10);
         gimbal_data_pub_ =
             this->create_publisher<geometry_msgs::msg::Vector3Stamped>("uart/gimbal_data", 10);
 
@@ -312,10 +320,12 @@ public:
     {
         auto odom_handler = std::make_unique<src::uart::OdometryHandler>(odom_msg);
         auto robotid_handler = std::make_unique<src::uart::RobotIDHandler>(robotid_msg);
+        auto health_handler = std::make_unique<src::uart::HealthHandler>(health_msg);
 
         std::map<src::uart::UartMessage::MessageType, std::unique_ptr<src::uart::UartRxHandler>>
             handlers;
         handlers[src::uart::UartMessage::ODOMETRY] = std::move(odom_handler);
+        handlers[src::uart::UartMessage::HEALTH] = std::move(health_handler);
         handlers[src::uart::UartMessage::ROBOT_ID] = std::move(robotid_handler);
 
         src::uart::UartConfig uart_config{.port = "/dev/ttyTHS1", .baud = 115200};

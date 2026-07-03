@@ -1,93 +1,107 @@
 #ifndef ROS_VISUALIZER_HPP
 #define ROS_VISUALIZER_HPP
 
-#include <eigen3/Eigen/Dense>
-#include <Eigen/src/Core/Matrix.h>
-
 #include <chrono>
 #include <memory>
-#include <std_msgs/msg/int32.hpp>
 #include <vector>
 
-#include <rclcpp/rclcpp.hpp>
-#include <nav_msgs/msg/occupancy_grid.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <visualization_msgs/msg/marker.hpp>
-#include <visualization_msgs/msg/marker_array.hpp>
+#include <eigen3/Eigen/Dense>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-#include <std_msgs/msg/float32_multi_array.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
+#include <std_msgs/msg/int32.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 // Correct TF2 headers for ROS 2 Jazzy
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include "auto_drive/theta_star.hpp"
 #include "auto_drive/cubic_bezier.hpp"
 #include "auto_drive/cubic_bezier_fitter.hpp"
 #include "auto_drive/path_outline.hpp"
+#include "auto_drive/theta_star.hpp"
 
 using namespace std::chrono_literals;
 
-namespace src::viz {
+namespace src::viz
+{
 
-enum class AutoDriveState {
+enum class AutoDriveState
+{
     GoingToBase,
     GoingToMid,
     InMid
 };
 
-enum class MidCycleType {
+enum class MidCycleType
+{
     Mid,
     Top,
     Bottom
 };
 
-enum class TravelType {
+enum class TravelType
+{
     Ramp,
     Bend,
     Bump
 };
 
-class RosVisualizer : public rclcpp::Node {
+class RosVisualizer : public rclcpp::Node
+{
 public:
-    RosVisualizer() : Node("path_planner_visualizer") {
+    RosVisualizer() : Node("path_planner_visualizer")
+    {
         // Initialize TF2 Buffer and Listener
         tf2_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
         grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("planner/map", 1);
-        bezier_data_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("planner/bezier_curve", 10);
+        bezier_data_pub_ =
+            this->create_publisher<std_msgs::msg::Float32MultiArray>("planner/bezier_curve", 10);
 
-        control_points_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/control_points", 10);
-        bezier_published_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/published_bezier", 10);
-        bezier_current_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
+        control_points_pub_ =
+            this->create_publisher<visualization_msgs::msg::Marker>("planner/control_points", 10);
+        bezier_published_visualizer_pub_ =
+            this->create_publisher<visualization_msgs::msg::Marker>("planner/published_bezier", 10);
+        bezier_current_visualizer_pub_ =
+            this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
 
-        goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&RosVisualizer::goal_callback, this, std::placeholders::_1));
-        robotid_sub_ = this->create_subscription<std_msgs::msg::Int32>("uart/robotid", 10, std::bind(&RosVisualizer::robotid_callback, this, std::placeholders::_1));
+        robotid_sub_ = this->create_subscription<std_msgs::msg::Int32>(
+            "uart/robotid",
+            10,
+            std::bind(&RosVisualizer::robotid_callback, this, std::placeholders::_1));
+
+        health_sub_ = this->create_subscription<std_msgs::msg::Int32>(
+            "uart/health",
+            10,
+            std::bind(&RosVisualizer::health_callback, this, std::placeholders::_1));
 
         thetaStar = new src::AutoPathing::ThetaStar();
         lastBezierPublishTime = this->now();
         lastGridPublishTime = this->now();
 
         // Timer to call the transform callback periodically (approx 30Hz)
-        odom_timer_ = this->create_wall_timer(
-            33ms, std::bind(&RosVisualizer::transform_callback, this));
+        odom_timer_ =
+            this->create_wall_timer(33ms, std::bind(&RosVisualizer::transform_callback, this));
     }
 
-    void transform_callback() {
+    void transform_callback()
+    {
         geometry_msgs::msg::TransformStamped transform;
 
-        try {
+        try
+        {
             // Lookup the latest transform from map to rig
-            transform = tf2_buffer_->lookupTransform(
-                "map", "base_link",
-                tf2::TimePointZero
-            );
+            transform = tf2_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero);
 
             double x_offset = transform.transform.translation.x;
             double y_offset = transform.transform.translation.y;
@@ -96,41 +110,54 @@ public:
             currentRobotWorldPos = Eigen::Vector2f(x_offset, y_offset);
             hasRobotPos = true;
 
-            RCLCPP_DEBUG(this->get_logger(), "Robot Pos Updated: X: %f, Y: %f",
-                        currentRobotWorldPos.x(), currentRobotWorldPos.y());
-
-        } catch (const tf2::TransformException &ex) {
-            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                                 "Could not get transform: %s", ex.what());
+            RCLCPP_DEBUG(
+                this->get_logger(),
+                "Robot Pos Updated: X: %f, Y: %f",
+                currentRobotWorldPos.x(),
+                currentRobotWorldPos.y());
+        }
+        catch (const tf2::TransformException& ex)
+        {
+            RCLCPP_WARN_THROTTLE(
+                this->get_logger(),
+                *this->get_clock(),
+                1000,
+                "Could not get transform: %s",
+                ex.what());
         }
     }
 
-    AutoPathing::CubicBezier translateBezierFromGridToWorld(AutoPathing::CubicBezier bezier) {
+    AutoPathing::CubicBezier translateBezierFromGridToWorld(AutoPathing::CubicBezier bezier)
+    {
         return AutoPathing::CubicBezier(
-            thetaStar->ConvertGridToWorld(bezier.start), 
-            thetaStar->ConvertGridToWorld(bezier.end), 
-            thetaStar->ConvertGridToWorld(bezier.controlStart), // KYS LIAM
-            thetaStar->ConvertGridToWorld(bezier.controlEnd)
-        );
+            thetaStar->ConvertGridToWorld(bezier.start),
+            thetaStar->ConvertGridToWorld(bezier.end),
+            thetaStar->ConvertGridToWorld(bezier.controlStart),  // KYS LIAM
+            thetaStar->ConvertGridToWorld(bezier.controlEnd));
     }
 
-    void publishBezierData(AutoPathing::CubicBezier& bezierToPub, rclcpp::Time& currentTime) {
+    void publishBezierData(AutoPathing::CubicBezier& bezierToPub, rclcpp::Time& currentTime)
+    {
         publishedBezier = bezierToPub;
 
         std_msgs::msg::Float32MultiArray arr;
         arr.data = {
-            bezierToPub.start.x(), bezierToPub.start.y(), 
-            bezierToPub.end.x(), bezierToPub.end.y(), 
-            bezierToPub.controlStart.x(), bezierToPub.controlStart.y(), 
-            bezierToPub.controlEnd.x(), bezierToPub.controlEnd.y(), 
-            bezierToPub.length
-        };
+            bezierToPub.start.x(),
+            bezierToPub.start.y(),
+            bezierToPub.end.x(),
+            bezierToPub.end.y(),
+            bezierToPub.controlStart.x(),
+            bezierToPub.controlStart.y(),
+            bezierToPub.controlEnd.x(),
+            bezierToPub.controlEnd.y(),
+            bezierToPub.length};
 
         bezier_data_pub_->publish(arr);
         lastBezierPublishTime = currentTime;
     }
 
-    void publishBezierVisualizer(AutoPathing::CubicBezier& currentBezier, rclcpp::Time& currentTime) {
+    void publishBezierVisualizer(AutoPathing::CubicBezier& currentBezier, rclcpp::Time& currentTime)
+    {
         visualization_msgs::msg::Marker bezier_published_marker;
         bezier_published_marker.header.frame_id = "map";
         bezier_published_marker.header.stamp = currentTime;
@@ -138,14 +165,20 @@ public:
         bezier_published_marker.id = 0;
         bezier_published_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
         bezier_published_marker.action = visualization_msgs::msg::Marker::ADD;
-        bezier_published_marker.scale.x = 0.025; 
-        bezier_published_marker.color.r = 0.0; bezier_published_marker.color.g = 1.0; bezier_published_marker.color.b = 0.0; bezier_published_marker.color.a = 1.0; 
+        bezier_published_marker.scale.x = 0.025;
+        bezier_published_marker.color.r = 0.0;
+        bezier_published_marker.color.g = 1.0;
+        bezier_published_marker.color.b = 0.0;
+        bezier_published_marker.color.a = 1.0;
 
-        for (int i = 0; i < BEZIER_VIS_SAMPLES; i++) {
+        for (int i = 0; i < BEZIER_VIS_SAMPLES; i++)
+        {
             float t = (float)i / (float)(BEZIER_VIS_SAMPLES - 1);
             Eigen::Vector2f pt = publishedBezier.Evaluate(t);
             geometry_msgs::msg::Point p;
-            p.x = pt.x(); p.y = pt.y(); p.z = 0.1;
+            p.x = pt.x();
+            p.y = pt.y();
+            p.z = 0.1;
             bezier_published_marker.points.push_back(p);
         }
 
@@ -156,14 +189,20 @@ public:
         bezier_current_marker.id = 0;
         bezier_current_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
         bezier_current_marker.action = visualization_msgs::msg::Marker::ADD;
-        bezier_current_marker.scale.x = 0.025; 
-        bezier_current_marker.color.r = 1.0; bezier_current_marker.color.g = 0.0; bezier_current_marker.color.b = 0.0; bezier_current_marker.color.a = 0.8; 
+        bezier_current_marker.scale.x = 0.025;
+        bezier_current_marker.color.r = 1.0;
+        bezier_current_marker.color.g = 0.0;
+        bezier_current_marker.color.b = 0.0;
+        bezier_current_marker.color.a = 0.8;
 
-        for (int i = 0; i < BEZIER_VIS_SAMPLES; i++) {
+        for (int i = 0; i < BEZIER_VIS_SAMPLES; i++)
+        {
             float t = (float)i / (float)(BEZIER_VIS_SAMPLES - 1);
             Eigen::Vector2f pt = currentBezier.Evaluate(t);
             geometry_msgs::msg::Point p;
-            p.x = pt.x(); p.y = pt.y(); p.z = 0.1;
+            p.x = pt.x();
+            p.y = pt.y();
+            p.z = 0.1;
             bezier_current_marker.points.push_back(p);
         }
 
@@ -173,22 +212,31 @@ public:
         points_marker.id = 1;
         points_marker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
         points_marker.action = visualization_msgs::msg::Marker::ADD;
-        points_marker.scale.x = 0.1; points_marker.scale.y = 0.1; points_marker.scale.z = 0.1; // Small spheres
-        points_marker.color.r = 1.0; points_marker.color.g = 1.0; points_marker.color.b = 0.0; points_marker.color.a = 1.0;
-
+        points_marker.scale.x = 0.1;
+        points_marker.scale.y = 0.1;
+        points_marker.scale.z = 0.1;  // Small spheres
+        points_marker.color.r = 1.0;
+        points_marker.color.g = 1.0;
+        points_marker.color.b = 0.0;
+        points_marker.color.a = 1.0;
 
         geometry_msgs::msg::Point p1, p2;
-            p1.x = currentBezier.controlStart.x(); p1.y = currentBezier.controlStart.y(); p1.z = 0.2;
-            p2.x = currentBezier.controlEnd.x();   p2.y = currentBezier.controlEnd.y();   p2.z = 0.2;
-            points_marker.points.push_back(p1);
-            points_marker.points.push_back(p2);
+        p1.x = currentBezier.controlStart.x();
+        p1.y = currentBezier.controlStart.y();
+        p1.z = 0.2;
+        p2.x = currentBezier.controlEnd.x();
+        p2.y = currentBezier.controlEnd.y();
+        p2.z = 0.2;
+        points_marker.points.push_back(p1);
+        points_marker.points.push_back(p2);
 
         control_points_pub_->publish(points_marker);
         bezier_published_visualizer_pub_->publish(bezier_published_marker);
         bezier_current_visualizer_pub_->publish(bezier_current_marker);
     }
 
-    void publishGrid(rclcpp::Time& currentTime) {
+    void publishGrid(rclcpp::Time& currentTime)
+    {
         int gridSizeX = thetaStar->GetSizeX();
         int gridSizeY = thetaStar->GetSizeY();
         float realSizeX = thetaStar->GetRealSizeX();
@@ -204,100 +252,115 @@ public:
         grid_msg.info.origin.orientation.w = 1.0;
 
         grid_msg.data.resize(grid_msg.info.width * grid_msg.info.height);
-        for (int y = 0; y < gridSizeY; ++y) {
-            for (int x = 0; x < gridSizeX; ++x) {
+        for (int y = 0; y < gridSizeY; ++y)
+        {
+            for (int x = 0; x < gridSizeX; ++x)
+            {
                 int val = (int)thetaStar->getWorkingGrid(x, y);
                 int index = x + y * gridSizeX;
-                if (val == 0) grid_msg.data[index] = 0;
-                else if (val == 1) grid_msg.data[index] = 100;
-                else if (val == 2) grid_msg.data[index] = 80;
-                else if (val == 3) grid_msg.data[index] = 60;
-                else grid_msg.data[index] = 20;
+                if (val == 0)
+                    grid_msg.data[index] = 0;
+                else if (val == 1)
+                    grid_msg.data[index] = 100;
+                else if (val == 2)
+                    grid_msg.data[index] = 80;
+                else if (val == 3)
+                    grid_msg.data[index] = 60;
+                else
+                    grid_msg.data[index] = 20;
             }
         }
         grid_pub_->publish(grid_msg);
         lastGridPublishTime = currentTime;
     }
 
-    void update() {
-        if (!hasRobotPos) { return; }
+    void update()
+    {
+        if (!hasRobotPos)
+        {
+            return;
+        }
 
         rclcpp::Time currentTime = this->now();
         thetaStar->updateDynamicObstacles();
         currentWorldGoalPos = calculateWorldGoalPos();
         currentGridGoalPos = thetaStar->ConvertWorldToGrid(currentWorldGoalPos);
 
-        Eigen::Vector2i currentRobotGridPos = thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()});
-        if (thetaStar->isNodeValidAndEmpty(currentRobotGridPos)) { lastValidRobotGridPos = currentRobotGridPos; }
+        Eigen::Vector2i currentRobotGridPos =
+            thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()});
+        if (thetaStar->isNodeValidAndEmpty(currentRobotGridPos))
+        {
+            lastValidRobotGridPos = currentRobotGridPos;
+        }
 
         AutoPathing::CubicBezier currentBezier = calculateCurrentBezierToGoal();
 
-        //if (currentBezier.end != publishedBezier.end) {
-        if ((currentTime - lastBezierPublishTime).seconds() > 5) {
-             this->publishBezierData(currentBezier, currentTime);
+        if (currentBezier.end != publishedBezier.end ||
+            (currentTime - lastBezierPublishTime).seconds() > 5)
+        {
+            this->publishBezierData(currentBezier, currentTime);
         }
 
         this->publishBezierVisualizer(currentBezier, currentTime);
 
-        if ((currentTime - lastGridPublishTime).seconds() > GRID_PUB_WAIT) {
+        if ((currentTime - lastGridPublishTime).seconds() > GRID_PUB_WAIT)
+        {
             this->publishGrid(currentTime);
         }
     }
 
-    Eigen::Vector2f calculateWorldGoalPos() {
-        float healthPercentage = (float)currentHealth / MAX_HEALTH;
+    Eigen::Vector2f calculateWorldGoalPos()
+    {
+        float healthPercentage = (float)currentHealth / (float)MAX_HEALTH;
 
-        if (healthPercentage < 0.3f)
-        { 
-            if (currentState != AutoDriveState::GoingToBase) 
-            {
-                currentState = AutoDriveState::GoingToBase;
-                start_path(GetRetreatPath());
-            }
+        if (healthPercentage < 0.55f)
+        {
+            currentState = AutoDriveState::GoingToBase;
+            try_start_path(GetRetreatPath());
         }
-        else 
-        { 
-            if (currentState == AutoDriveState::GoingToBase && healthPercentage == 1) 
-            { 
-                if (currentState != AutoDriveState::GoingToMid)
-                {
-                    currentState = AutoDriveState::GoingToMid; 
-                    start_path(GetPushPath());
-                }
+        else
+        {
+            if (currentState == AutoDriveState::GoingToBase && healthPercentage > 0.99f)
+            {
+                currentState = AutoDriveState::GoingToMid;
+                try_start_path(GetPushPath());
             }
 
-            if (currentState == AutoDriveState::GoingToMid && currentPathOutline.isPathFinished())
+            if (currentState == AutoDriveState::GoingToMid && currentPathOutline->isPathFinished())
             {
-                if (currentState != AutoDriveState::InMid) 
-                { 
-                    currentState = AutoDriveState::InMid; 
-                    start_path(GetCyclePath());
-                }
+                currentState = AutoDriveState::InMid;
+                try_start_path(GetCyclePath());
             }
         }
 
-        return currentPathOutline.evaluatePath(currentRobotWorldPos);
+        if (currentPathOutline == nullptr)
+        {
+            currentState = AutoDriveState::GoingToBase;
+            try_start_path(GetRetreatPath());
+        }
+        return currentPathOutline->evaluatePath(currentRobotWorldPos);
     }
 
-    AutoPathing::CubicBezier calculateCurrentBezierToGoal() {
+    AutoPathing::CubicBezier calculateCurrentBezierToGoal()
+    {
+        std::vector<Eigen::Vector2i> fullGridPath =
+            thetaStar->FindPath(lastValidRobotGridPos, currentGridGoalPos);
 
-        std::vector<Eigen::Vector2i> fullGridPath = thetaStar->FindPath(
-            lastValidRobotGridPos, 
-            currentGridGoalPos
-        );
-        
         size_t flipIdx = src::AutoPathing::CubicBezierFitter::findFirstConcavityFlip(fullGridPath);
-        std::vector<Eigen::Vector2i> gridPathUntilConcavityFlip(fullGridPath.begin(), fullGridPath.begin() + flipIdx);
-        std::vector<Eigen::Vector2f> populatedPath = src::AutoPathing::CubicBezierFitter::PopulatePointsNew(gridPathUntilConcavityFlip);
+        std::vector<Eigen::Vector2i> gridPathUntilConcavityFlip(
+            fullGridPath.begin(),
+            fullGridPath.begin() + flipIdx);
+        std::vector<Eigen::Vector2f> populatedPath =
+            src::AutoPathing::CubicBezierFitter::PopulatePointsNew(gridPathUntilConcavityFlip);
 
-        return translateBezierFromGridToWorld(src::AutoPathing::CubicBezierFitter::FitCubic(populatedPath, 30, 1, .001));
+        return translateBezierFromGridToWorld(
+            src::AutoPathing::CubicBezierFitter::FitCubic(populatedPath, 30, 1, .001));
     }
 
 private:
-
-    const MidCycleType currentMidCycleType = MidCycleType::Top;
-    const TravelType currentPushType = TravelType::Ramp;
-    const TravelType currentRetreatType = TravelType::Ramp;
+    const MidCycleType currentMidCycleType = MidCycleType::Mid;
+    const TravelType currentPushType = TravelType::Bump;
+    const TravelType currentRetreatType = TravelType::Bump;
 
     const int BEZIER_VIS_SAMPLES = 24;
     const float GRID_PUB_WAIT = 3.0f;
@@ -308,24 +371,22 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_current_visualizer_pub_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_pub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
     rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr robotid_sub_;
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr health_sub_;
 
-    void goal_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-        currentWorldGoalPos = Eigen::Vector2f(-msg->pose.position.y, msg->pose.position.x);
+    int32_t currentHealth = 400;
+    const int32_t MAX_HEALTH = 400;
 
-        RCLCPP_INFO(this->get_logger(), "New Goal Set: X: %f, Y: %f", 
-                    currentWorldGoalPos.x(), currentWorldGoalPos.y());
-    }
+    void robotid_callback(const std_msgs::msg::Int32::SharedPtr msg) { leftTeam = msg->data < 100; }
+    void health_callback(const std_msgs::msg::Int32::SharedPtr msg) { currentHealth = msg->data; }
 
-    void robotid_callback(const std_msgs::msg::Int32::SharedPtr msg) {
-        leftTeam = msg->data < 100;
-    }
-
-    void start_path(PathOutline pathToStart)
+    void try_start_path(PathOutline* pathToStart)
     {
-        currentPathOutline = pathToStart;
-        currentPathOutline.startPath();
+        if (currentPathOutline != pathToStart)
+        {
+            currentPathOutline = pathToStart;
+            currentPathOutline->startPath();
+        }
     }
 
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
@@ -345,10 +406,7 @@ private:
     Eigen::Vector2f currentRobotWorldPos;
     Eigen::Vector2i lastValidRobotGridPos;
 
-    int currentHealth = 400;
-    const int MAX_HEALTH = 400;
-
-    PathOutline currentPathOutline;
+    PathOutline* currentPathOutline = nullptr;
     AutoDriveState currentState = AutoDriveState::GoingToBase;
 
     bool leftTeam = true;
@@ -356,63 +414,112 @@ private:
     const Eigen::Vector2f LEFT_ALL_ZONE = Eigen::Vector2f(-5.3f, 0.0f);
     const Eigen::Vector2f RIGHT_ALL_ZONE = Eigen::Vector2f(5.3f, 0.0f);
 
-    PathOutline MID_CYCLE_PATH = PathOutline({Eigen::Vector2f(-1.0f, 1.0f), Eigen::Vector2f(1.0f, -1.0f), Eigen::Vector2f(-1.0f, -1.0f), Eigen::Vector2f(1.0f, 1.0f)}, true);
+    static constexpr float MID_SIZE = 0.6f;
+    PathOutline* MID_CYCLE_PATH = new PathOutline(
+        {Eigen::Vector2f(-MID_SIZE, MID_SIZE),
+         Eigen::Vector2f(MID_SIZE, -MID_SIZE),
+         Eigen::Vector2f(-MID_SIZE, -MID_SIZE),
+         Eigen::Vector2f(MID_SIZE, MID_SIZE)},
+        true);
 
     // CYCLE
-    PathOutline LEFT_MID_BOTTOM_CYCLE_PATH = PathOutline({Eigen::Vector2f(-1.7f, -1.47f), Eigen::Vector2f(-2.02f, -0.71f)}, true);
-    PathOutline LEFT_MID_TOP_CYCLE_PATH = PathOutline({Eigen::Vector2f(-0.6f, 1.82f), Eigen::Vector2f(-1.55f, 1.31f)}, true);
+    PathOutline* LEFT_MID_BOTTOM_CYCLE_PATH =
+        new PathOutline({Eigen::Vector2f(-1.7f, -1.47f), Eigen::Vector2f(-2.02f, -0.71f)}, true);
+    PathOutline* LEFT_MID_TOP_CYCLE_PATH =
+        new PathOutline({Eigen::Vector2f(-0.6f, 1.82f), Eigen::Vector2f(-1.55f, 1.31f)}, true);
     // LEFT TO MID
-    PathOutline LEFT_TO_MID_RAMP_PATH = PathOutline({Eigen::Vector2f(-4.16f, 2.54f), Eigen::Vector2f(-0.93f, 2.54f), Eigen::Vector2f(-0.82f, 1.33f)}, false);
-    PathOutline LEFT_TO_MID_BEND_PATH = PathOutline({Eigen::Vector2f(-4.28f, 1.69f), Eigen::Vector2f(-2.93f, -0.72f), Eigen::Vector2f(-1.31f, -0.49f)}, false);
-    PathOutline LEFT_TO_MID_BUMP_PATH = PathOutline({Eigen::Vector2f(-4.22f, -3.18f), Eigen::Vector2f(-1.64f, -1.54f)}, false);
+    PathOutline* LEFT_TO_MID_RAMP_PATH = new PathOutline(
+        {Eigen::Vector2f(-4.16f, 2.54f),
+         Eigen::Vector2f(-0.93f, 2.54f),
+         Eigen::Vector2f(-0.82f, 1.33f)},
+        false);
+    PathOutline* LEFT_TO_MID_BEND_PATH =
+        new PathOutline({Eigen::Vector2f(-4.64f, 1.54f), Eigen::Vector2f(-1.83f, 0.33f)}, false);
+    PathOutline* LEFT_TO_MID_BUMP_PATH =
+        new PathOutline({Eigen::Vector2f(-4.22f, -3.18f), Eigen::Vector2f(-1.64f, -1.54f)}, false);
     // MID TO LEFT
-    PathOutline MID_TO_LEFT_RAMP_PATH = PathOutline({Eigen::Vector2f(-0.82f, 1.33f), Eigen::Vector2f(-0.93f, 2.54f), Eigen::Vector2f(-4.16f, 2.54f), LEFT_ALL_ZONE}, false);
-    PathOutline MID_TO_LEFT_BEND_PATH = PathOutline({Eigen::Vector2f(-1.31f, -0.49f), Eigen::Vector2f(-2.93f, -0.72f), Eigen::Vector2f(-4.28f, 1.69f), LEFT_ALL_ZONE}, false);
-    PathOutline MID_TO_LEFT_BUMP_PATH = PathOutline({Eigen::Vector2f(-1.64f, -1.54f), Eigen::Vector2f(-4.22f, -3.18f), LEFT_ALL_ZONE}, false);
+    PathOutline* MID_TO_LEFT_RAMP_PATH = new PathOutline(
+        {Eigen::Vector2f(-0.82f, 1.33f),
+         Eigen::Vector2f(-0.93f, 2.54f),
+         Eigen::Vector2f(-4.16f, 2.54f),
+         LEFT_ALL_ZONE},
+        false);
+    PathOutline* MID_TO_LEFT_BEND_PATH = new PathOutline(
+        {Eigen::Vector2f(-1.83f, 0.33f), Eigen::Vector2f(-4.64f, 1.54f), LEFT_ALL_ZONE},
+        false);
+    PathOutline* MID_TO_LEFT_BUMP_PATH = new PathOutline(
+        {Eigen::Vector2f(-1.64f, -1.54f), Eigen::Vector2f(-4.22f, -3.18f), LEFT_ALL_ZONE},
+        false);
 
     // CYCLE
-    PathOutline RIGHT_MID_BOTTOM_CYCLE_PATH = PathOutline({Eigen::Vector2f(1.7f, -1.47f), Eigen::Vector2f(2.02f, -0.71f)}, true);
-    PathOutline RIGHT_MID_TOP_CYCLE_PATH = PathOutline({Eigen::Vector2f(0.6f, 1.82f), Eigen::Vector2f(1.55f, 1.31f)}, true);
+    PathOutline* RIGHT_MID_BOTTOM_CYCLE_PATH =
+        new PathOutline({Eigen::Vector2f(1.7f, -1.47f), Eigen::Vector2f(2.02f, -0.71f)}, true);
+    PathOutline* RIGHT_MID_TOP_CYCLE_PATH =
+        new PathOutline({Eigen::Vector2f(0.6f, 1.82f), Eigen::Vector2f(1.55f, 1.31f)}, true);
     // RIGHT TO MID
-    PathOutline RIGHT_TO_MID_RAMP_PATH = PathOutline({Eigen::Vector2f(4.16f, 2.54f), Eigen::Vector2f(0.93f, 2.54f), Eigen::Vector2f(0.82f, 1.33f)}, false);
-    PathOutline RIGHT_TO_MID_BEND_PATH = PathOutline({Eigen::Vector2f(4.28f, 1.69f), Eigen::Vector2f(2.93f, -0.72f), Eigen::Vector2f(1.31f, -0.49f)}, false);
-    PathOutline RIGHT_TO_MID_BUMP_PATH = PathOutline({Eigen::Vector2f(4.22f, -3.18f), Eigen::Vector2f(1.64f, -1.54f)}, false);
+    PathOutline* RIGHT_TO_MID_RAMP_PATH = new PathOutline(
+        {Eigen::Vector2f(4.16f, 2.54f),
+         Eigen::Vector2f(0.93f, 2.54f),
+         Eigen::Vector2f(0.82f, 1.33f)},
+        false);
+    PathOutline* RIGHT_TO_MID_BEND_PATH =
+        new PathOutline({Eigen::Vector2f(4.64f, 1.54f), Eigen::Vector2f(1.83f, 0.33f)}, false);
+    PathOutline* RIGHT_TO_MID_BUMP_PATH =
+        new PathOutline({Eigen::Vector2f(4.17f, -2.58f), Eigen::Vector2f(1.64f, -1.54f)}, false);
     // MID TO RIGHT
-    PathOutline MID_TO_RIGHT_RAMP_PATH = PathOutline({Eigen::Vector2f(0.82f, 1.33f), Eigen::Vector2f(0.93f, 2.54f), Eigen::Vector2f(4.16f, 2.54f), RIGHT_ALL_ZONE}, false);
-    PathOutline MID_TO_RIGHT_BEND_PATH = PathOutline({Eigen::Vector2f(1.31f, -0.49f), Eigen::Vector2f(2.93f, -0.72f), Eigen::Vector2f(4.28f, 1.69f), RIGHT_ALL_ZONE}, false);
-    PathOutline MID_TO_RIGHT_BUMP_PATH = PathOutline({Eigen::Vector2f(1.64f, -1.54f), Eigen::Vector2f(4.22f, -3.18f), RIGHT_ALL_ZONE}, false);
+    PathOutline* MID_TO_RIGHT_RAMP_PATH = new PathOutline(
+        {Eigen::Vector2f(0.82f, 1.33f),
+         Eigen::Vector2f(0.93f, 2.54f),
+         Eigen::Vector2f(4.16f, 2.54f),
+         RIGHT_ALL_ZONE},
+        false);
+    PathOutline* MID_TO_RIGHT_BEND_PATH = new PathOutline(
+        {Eigen::Vector2f(1.83f, 0.33f), Eigen::Vector2f(4.64f, 1.54f), RIGHT_ALL_ZONE},
+        false);
+    PathOutline* MID_TO_RIGHT_BUMP_PATH = new PathOutline(
+        {Eigen::Vector2f(1.64f, -1.54f), Eigen::Vector2f(4.22f, -3.18f), RIGHT_ALL_ZONE},
+        false);
 
-    PathOutline GetCyclePath()
+    PathOutline* GetCyclePath()
     {
-        switch(currentMidCycleType)
+        switch (currentMidCycleType)
         {
-            case MidCycleType::Top: return leftTeam ? LEFT_MID_TOP_CYCLE_PATH : RIGHT_MID_TOP_CYCLE_PATH;
-            case MidCycleType::Bottom: return leftTeam ? LEFT_MID_BOTTOM_CYCLE_PATH : RIGHT_MID_BOTTOM_CYCLE_PATH;
-            default: return MID_CYCLE_PATH;
+            case MidCycleType::Top:
+                return leftTeam ? LEFT_MID_TOP_CYCLE_PATH : RIGHT_MID_TOP_CYCLE_PATH;
+            case MidCycleType::Bottom:
+                return leftTeam ? LEFT_MID_BOTTOM_CYCLE_PATH : RIGHT_MID_BOTTOM_CYCLE_PATH;
+            default:
+                return MID_CYCLE_PATH;
         }
     }
 
-    PathOutline GetPushPath()
+    PathOutline* GetPushPath()
     {
-        switch(currentPushType)
+        switch (currentPushType)
         {
-            case TravelType::Bump: return leftTeam ? LEFT_TO_MID_BUMP_PATH : RIGHT_TO_MID_BUMP_PATH;
-            case TravelType::Bend: return leftTeam ? LEFT_TO_MID_BEND_PATH : RIGHT_TO_MID_BEND_PATH;
-            default:  return leftTeam ? LEFT_TO_MID_RAMP_PATH : RIGHT_TO_MID_RAMP_PATH;
+            case TravelType::Bump:
+                return leftTeam ? LEFT_TO_MID_BUMP_PATH : RIGHT_TO_MID_BUMP_PATH;
+            case TravelType::Bend:
+                return leftTeam ? LEFT_TO_MID_BEND_PATH : RIGHT_TO_MID_BEND_PATH;
+            default:
+                return leftTeam ? LEFT_TO_MID_RAMP_PATH : RIGHT_TO_MID_RAMP_PATH;
         }
     }
 
-    PathOutline GetRetreatPath()
+    PathOutline* GetRetreatPath()
     {
-        switch(currentRetreatType)
+        switch (currentRetreatType)
         {
-            case TravelType::Bump: return leftTeam ? MID_TO_LEFT_BUMP_PATH : MID_TO_RIGHT_BUMP_PATH;
-            case TravelType::Bend: return leftTeam ? MID_TO_LEFT_BEND_PATH : MID_TO_RIGHT_BEND_PATH;
-            default:  return leftTeam ? MID_TO_LEFT_RAMP_PATH : MID_TO_RIGHT_RAMP_PATH;
+            case TravelType::Bump:
+                return leftTeam ? MID_TO_LEFT_BUMP_PATH : MID_TO_RIGHT_BUMP_PATH;
+            case TravelType::Bend:
+                return leftTeam ? MID_TO_LEFT_BEND_PATH : MID_TO_RIGHT_BEND_PATH;
+            default:
+                return leftTeam ? MID_TO_LEFT_RAMP_PATH : MID_TO_RIGHT_RAMP_PATH;
         }
     }
 };
 
-} // namespace src::viz
+}  // namespace src::viz
 
 #endif

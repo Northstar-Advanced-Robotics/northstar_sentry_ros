@@ -1,0 +1,13 @@
+[Unit]
+Description=Runs localization on startup
+After=graphical.target docker.service
+Wants=graphical.target docker.service
+
+[Service]
+User=northstar_agx
+Group=northstar_agx
+ExecStart=/home/northstar_agx/Docker/realsense_ws/scripts/startup-headless.sh
+Type=simple
+
+[Install]
+WantedBy=graphical.target

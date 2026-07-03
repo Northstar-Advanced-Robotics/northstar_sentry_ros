@@ -35,7 +35,7 @@ body_defaults:
 bodies:
   - map:
       is_static: true
-      default_tag_size: 0.1445
+      default_tag_size: 0.15
       pose:
         position:
           x: 0

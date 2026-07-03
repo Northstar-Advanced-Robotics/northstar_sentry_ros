@@ -98,7 +98,7 @@ def generate_launch_description():
         executable='ekf_node',
         name='ekf_local_node',
         output='screen',
-        parameters=[ekf_local_config],
+        parameters=[ekf_local_config, {'use_sim_time': True}],
         remappings=[('odometry/filtered', 'odometry/local')]
     )
 
@@ -172,7 +172,7 @@ def generate_launch_description():
                 '--frame-id', 'base_link', 
                 '--child-frame-id', f'{name}_cam_link'
             ],
-        parameters=[{'use_sim_time': True}],
+            parameters=[{'use_sim_time': True}],
         )
         tf_nodes.append(tf_node)
 
