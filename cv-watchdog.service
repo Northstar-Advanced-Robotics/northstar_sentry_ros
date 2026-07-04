@@ -1,0 +1,19 @@
+[Unit]
+Description=Restarts CV
+
+BindsTo=localization-headless.service
+# PartOf=localization-headless.service
+After=localization-headless.service docker.service
+
+[Service]
+User=northstar_agx
+Group=northstar_agx
+
+ExecStart=docker exec ros-container bash -c 'scripts/cv-reset.sh' 
+Type=simple
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=localization-headless.service

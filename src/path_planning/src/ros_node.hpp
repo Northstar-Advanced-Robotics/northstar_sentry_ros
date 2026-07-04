@@ -359,8 +359,8 @@ public:
 
 private:
     const MidCycleType currentMidCycleType = MidCycleType::Mid;
-    const TravelType currentPushType = TravelType::Bump;
-    const TravelType currentRetreatType = TravelType::Bump;
+    const TravelType currentPushType = TravelType::Bend;
+    const TravelType currentRetreatType = TravelType::Bend;
 
     const int BEZIER_VIS_SAMPLES = 24;
     const float GRID_PUB_WAIT = 3.0f;
@@ -434,7 +434,7 @@ private:
          Eigen::Vector2f(-0.82f, 1.33f)},
         false);
     PathOutline* LEFT_TO_MID_BEND_PATH =
-        new PathOutline({Eigen::Vector2f(-4.64f, 1.54f), Eigen::Vector2f(-1.83f, 0.33f)}, false);
+        new PathOutline({Eigen::Vector2f(-4.64f, 1.54f), Eigen::Vector2f(-1.88f, -0.69f)}, false);
     PathOutline* LEFT_TO_MID_BUMP_PATH =
         new PathOutline({Eigen::Vector2f(-4.17f, -2.58f), Eigen::Vector2f(-1.64f, -1.54f)}, false);
     // MID TO LEFT
@@ -445,7 +445,7 @@ private:
          LEFT_ALL_ZONE},
         false);
     PathOutline* MID_TO_LEFT_BEND_PATH = new PathOutline(
-        {Eigen::Vector2f(-1.83f, 0.33f), Eigen::Vector2f(-4.64f, 1.54f), LEFT_ALL_ZONE},
+        {Eigen::Vector2f(-1.88f, -0.69f), Eigen::Vector2f(-4.64f, 1.54f), LEFT_ALL_ZONE},
         false);
     PathOutline* MID_TO_LEFT_BUMP_PATH = new PathOutline(
         {Eigen::Vector2f(-1.64f, -1.54f), Eigen::Vector2f(-4.17f, -2.58f), LEFT_ALL_ZONE},
@@ -463,7 +463,7 @@ private:
          Eigen::Vector2f(0.82f, 1.33f)},
         false);
     PathOutline* RIGHT_TO_MID_BEND_PATH =
-        new PathOutline({Eigen::Vector2f(4.64f, 1.54f), Eigen::Vector2f(1.83f, 0.33f)}, false);
+        new PathOutline({Eigen::Vector2f(4.64f, 1.54f), Eigen::Vector2f(1.88f, -0.69f)}, false);
     PathOutline* RIGHT_TO_MID_BUMP_PATH =
         new PathOutline({Eigen::Vector2f(4.17f, -2.58f), Eigen::Vector2f(1.64f, -1.54f)}, false);
     // MID TO RIGHT
@@ -474,7 +474,7 @@ private:
          RIGHT_ALL_ZONE},
         false);
     PathOutline* MID_TO_RIGHT_BEND_PATH = new PathOutline(
-        {Eigen::Vector2f(1.83f, 0.33f), Eigen::Vector2f(4.64f, 1.54f), RIGHT_ALL_ZONE},
+        {Eigen::Vector2f(1.88f, -0.69f), Eigen::Vector2f(4.64f, 1.54f), RIGHT_ALL_ZONE},
         false);
     PathOutline* MID_TO_RIGHT_BUMP_PATH = new PathOutline(
         {Eigen::Vector2f(1.64f, -1.54f), Eigen::Vector2f(4.17f, -2.58f), RIGHT_ALL_ZONE},

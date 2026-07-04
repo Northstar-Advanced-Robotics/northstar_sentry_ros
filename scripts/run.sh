@@ -12,7 +12,6 @@ if (("$#" != 1)); then
   exit 1
 fi
 
-# COMMENT OUT TO COMPILE
-# colcon build --symlink-install --event-handlers console_direct+ --packages-up-to "$1" --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+colcon build --symlink-install --event-handlers console_direct+ --packages-up-to "$1" --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 source ${HERE}/../install/setup.bash
 ros2 launch "$1" launch.py
