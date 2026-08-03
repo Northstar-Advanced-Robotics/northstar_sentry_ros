@@ -4,8 +4,6 @@ install
 log
 logs
 # Dep sources
-src/tagslam
-src/flex_sync
 .cache
 .vscode
 tag_corners.txt

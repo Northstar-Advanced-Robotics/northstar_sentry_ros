@@ -6,7 +6,6 @@ else
   docker run -it --rm --net=host --ipc=host --pid=host --privileged \
     -e="DISPLAY" -e="TERM" -e="QT_X11_NO_MITSHM=1" -e="COLORTERM" \
     --runtime=nvidia \
-    --shm-size=8g \
     --group-add video \
     --group-add dialout \
     -v="/run/udev:/run/udev:ro" \

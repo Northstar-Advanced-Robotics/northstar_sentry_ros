@@ -1,7 +1,5 @@
 FROM nvidia/cuda:12.2.2-devel-ubuntu22.04
 
-SHELL ["/bin/bash", "-c"]
-
 ENV ROS_DISTRO=humble \
     DEBIAN_FRONTEND=noninteractive \
     TZ=America/Chicago \

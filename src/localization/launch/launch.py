@@ -61,20 +61,6 @@ def generate_launch_description():
         name='path_planning',
     )
 
-    # sync_and_detect = ComposableNode(
-    #     package="tagslam",
-    #     plugin="tagslam::SyncAndDetect",
-    #     name="sync_and_detect",
-    #     parameters=[{"cameras": cameras_config,
-    #                  "tagslam_config": tagslam_config,
-    #                  "use_sim_time": False,
-    #                  "use_approximate_sync": True,
-    #                  "sync_queue_size": 2},
-    #                  qos_overrides_config],
-    #     remappings=[],
-    #     extra_arguments=[{'use_intra_process_comms' : True}],
-    # )
-
     tagslam = ComposableNode(
         package="tagslam",
         plugin="tagslam::TagSLAM",
@@ -131,28 +117,6 @@ def generate_launch_description():
    
     for name, config in cameras.items():
 
-        # tf = ComposableNode(
-        #     package='tf2_ros',
-        #     name=f'tf_{name}',
-        #     plugin='tf2_ros::StaticTransformBroadcasterNode',
-        #     parameters=[{"x": config['x'],
-        #                  "y": config['y'],
-        #                  "z": config['z'],
-        #                  "yaw": config['yaw'],
-        #                  "pitch": '0',
-        #                  "roll": '0',
-        #                  "frame-id": 'rig',
-        #                  "child-frame-id": f'{name}_cam_link',
-        #                  "use_sim_time": False,
-        #                  "use_approximate_sync": True}],
-        #     # arguments=[
-        #     #     '--x', config['x'], '--y', config['y'], '--z', config['z'],
-        #     #     '--yaw', config['yaw'], '--pitch', '0', '--roll', '0',
-        #     #     '--frame-id', 'rig', '--child-frame-id', f'{name}_cam_link',
-        #     # ],
-        #     extra_arguments=[{'use_intra_process_comms' : True}],
-        # )
-
         tf_node = Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -182,25 +146,6 @@ def generate_launch_description():
             }],
            extra_arguments=[{'use_intra_process_comms' : True}],
         )
-
-        # rectify_node = ComposableNode(
-        #     package='isaac_ros_image_proc',
-        #     plugin='nvidia::isaac_ros::image_proc::RectifyNode',
-        #     name='rectify',
-        #     namespace='',
-        #     parameters=[{
-        #         # 'output_width': camera_width,
-        #         # 'output_height': camera_height,
-        #     }],
-        #     remappings=[
-        #         ('image_raw', f'/{name}/camera/color/image_raw'),
-        #         ('camera_info', f'/{name}/camera/color/camera_info'),
-        #         ('image_rect', f'/{name}/camera/color/image_rect'),
-        #         ('camera_info_rect', f'/{name}/camera/color/camera_info_rect')
-        #     ],
-
-        # )
-
 
         isaac_apriltag_node = ComposableNode(
             package='isaac_ros_apriltag',
