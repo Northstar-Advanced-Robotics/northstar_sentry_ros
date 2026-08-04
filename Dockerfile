@@ -6,11 +6,13 @@ ENV ROS_DISTRO=humble \
     ROS_LOG_DIR="/home/ubuntu/realsense_ws/logs" \
     PATH="/devtools:${PATH}" \
     CC=clang \
-    CXX=clang \
+    CXX=clang++ \
     CMAKE_GENERATOR=Ninja \
+    CMAKE_EXPORT_COMPILE_COMMANDS=ON \
     CMAKE_C_COMPILER_LAUNCHER=ccache \
     CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    CMAKE_EXPORT_COMPILE_COMMANDS=ON
+    CCACHE_DIR=/ws/.ccache \
+    LDFLAGS='-fuse-ld=mold'
 
 # See https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html 
 # ROS2 + Isaac Ros setup, the base image does not have ROS2
@@ -34,6 +36,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         ros-${ROS_DISTRO}-gtsam  \
         ros-${ROS_DISTRO}-robot-localization \
         ros-${ROS_DISTRO}-ament-clang-format  \
+        ros-${ROS_DISTRO}-apriltag-detector  \
         ros-${ROS_DISTRO}-isaac-ros-apriltag \
         ros-${ROS_DISTRO}-apriltag-msgs \
         ros-${ROS_DISTRO}-v4l2-camera \
@@ -42,6 +45,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         libfastcdr-dev \
         libopencv-dev \
         clang \
+        mold \
         ccache \
         clangd \
         ninja-build \
@@ -49,21 +53,12 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         bash-completion \
         python3-argcomplete \ 
         python3-pip && \
-        pip3 install --upgrade cmake && \
-        pip3 install numpy==1.26.4 && \
-        rm -rf /var/lib/apt/lists/*
+    pip3 install --upgrade cmake && \
+    pip3 install numpy==1.26.4 && \
+    rm -rf /var/lib/apt/lists/*
 
-# # Create the 'ubuntu' user with UID/GID 1000 to match the host
-# RUN groupadd -g 1000 ubuntu && \
-#     useradd -u 1000 -g ubuntu -m -s /bin/bash ubuntu && \
-#     echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# setting up command autocomplete
-RUN mkdir -p /home/ubuntu && \
-    echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
-    echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> /home/ubuntu/.bashrc && \
+RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
     register-python-argcomplete3 ros2 > /etc/bash_completion.d/ros2 && \
     register-python-argcomplete3 colcon > /etc/bash_completion.d/colcon
 
-# USER ubuntu
-# WORKDIR /home/ubuntu
+WORKDIR /ws

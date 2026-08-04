@@ -1,5 +1,5 @@
 #include <cstdio>
-#include <memory>  // Added for std::unique_ptr
+#include <memory>
 #include <thread>
 
 #include <geometry_msgs/msg/vector3_stamped.hpp>
@@ -23,8 +23,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
-#include <uart/handlers/odometry_handler.hpp>
 #include <uart/handlers/health_handler.hpp>
+#include <uart/handlers/odometry_handler.hpp>
 #include <uart/messages/alive_message.hpp>
 #include <uart/messages/auto_path_message.hpp>
 #include <uart/messages/autoaim_message.hpp>
@@ -33,7 +33,6 @@
 
 #include "uart/handlers/robot_id_handler.hpp"
 #include "uart/ibus_reader.hpp"
-#include "uart/messages/fly_sky_meassage.hpp"
 #include "uart/messages/vision_localization_message.hpp"
 #include "uart_bridge/msg/auto_aim.hpp"
 
@@ -70,7 +69,6 @@ private:
     rclcpp::TimerBase::SharedPtr odom_to_mcb_timer_;
     rclcpp::TimerBase::SharedPtr robotid_request_timer_;
 
-    // uart thingies
     src::uart::OdometryMessage odom_msg;
     src::uart::HealthMessage health_msg;
     src::uart::RobotIDMessage robotid_msg;
@@ -194,7 +192,6 @@ private:
 
         odometry_tagslam_pub_->publish(odom_msg_ros);
 
-        // RobotID — only publish once we have a valid ID (for late-joining subscribers)
         if (robotid_msg.robot_id != src::uart::RobotIDMessage::RobotId::INVALID)
         {
             std_msgs::msg::Int32 robotid_data;
@@ -226,7 +223,6 @@ private:
             long long offset_us = jetson_to_mcb_offset_us.load();
 
             long long mcb_historical_time_us = ros_time_us - offset_us;
-            // ----------------------------
 
             vision_localization_msg.x = transform.transform.translation.x;
             vision_localization_msg.y = transform.transform.translation.y;
@@ -237,7 +233,7 @@ private:
             uart_->send(
                 std::make_unique<src::uart::VisionLocalizationMessage>(vision_localization_msg));
         }
-        catch (const tf2::TransformException &ex)
+        catch (const tf2::TransformException& ex)
         {
             RCLCPP_WARN_THROTTLE(
                 this->get_logger(),
@@ -272,13 +268,6 @@ public:
             "/autoaim",
             10,
             std::bind(&UartBridge::autoaim_callback, this, std::placeholders::_1));
-
-        // vision_localization_sub_ =
-        //     this->create_subscription<nav_msgs::msg::Odometry>(
-        //         "/odom/body_rig", 10,
-        //         std::bind(&UartBridge::vis,
-        //         this,
-        //                   std::placeholders::_1));
 
         odom_to_mcb_timer_ =
             this->create_wall_timer(5000ms, std::bind(&UartBridge::transform_callback, this));
@@ -332,9 +321,6 @@ public:
 
         uart_ = std::make_unique<src::uart::Uart>(uart_config, std::move(handlers), true);
 
-        // flysky_reader_ = std::make_unique<src::uart::IBusReader>("/dev/ttyUSB0", uart_.get());
-        // flysky_reader_->start();
-
         rx_thread_ = std::thread(
             [this]()
             {
@@ -352,7 +338,7 @@ public:
     }
 };
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<UartBridge>());

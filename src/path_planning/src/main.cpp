@@ -1,5 +1,3 @@
-#include <rclcpp/rclcpp.hpp>
-
 #include "ros_node.hpp"
 
 int main(int argc, char** argv)

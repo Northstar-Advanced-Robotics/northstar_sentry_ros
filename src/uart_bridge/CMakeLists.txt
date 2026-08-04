@@ -36,7 +36,7 @@ add_executable(uart_bridge_node
   src/uart/crc/crc.cpp
 )
 
-target_compile_features(uart_bridge_node PUBLIC c_std_99 cxx_std_20)  # Require C99 and C++17
+target_compile_features(uart_bridge_node PUBLIC c_std_99 cxx_std_20)
 target_include_directories(uart_bridge_node PUBLIC src)
 
 target_link_libraries(uart_bridge_node

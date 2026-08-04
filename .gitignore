@@ -4,6 +4,7 @@ install
 log
 logs
 # Dep sources
+.ccache
 .cache
 .vscode
 tag_corners.txt

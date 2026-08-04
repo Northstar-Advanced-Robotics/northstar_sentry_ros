@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.13) 
-project(path_planning CXX)
+project(path_planning)
  
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 find_package(Eigen3 REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -15,6 +12,8 @@ find_package(tf2_geometry_msgs REQUIRED)
 add_executable(path_planning_node
     src/main.cpp
     auto_drive/path_outline.hpp)
+
+target_compile_features(path_planning_node PUBLIC cxx_std_20)
 
 ament_target_dependencies(path_planning_node 
     rclcpp 
@@ -35,8 +34,6 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}
 )
-
-# rviz2 -d /path/to/your/config_file.rviz
  
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
