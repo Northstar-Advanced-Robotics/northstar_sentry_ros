@@ -1,12 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 project(detector LANGUAGES CXX CUDA)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
 endif()
-
-# Tell the compiler this is for the Jetson Orin AGX (Ampere)
-set(CMAKE_CUDA_ARCHITECTURES 87)
 
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -34,7 +31,11 @@ set(PF_LIB_SOURCES
 )
 
 add_library(robomaster_particle_filters_lib SHARED ${PF_LIB_SOURCES})
-target_compile_features(robomaster_particle_filters_lib PUBLIC cxx_std_20 cuda_std_20)
+set_target_properties(robomaster_particle_filters_lib
+PROPERTIES
+    CUDA_ARCHITECTURES 87
+)
+target_compile_features(robomaster_particle_filters_lib PRIVATE cxx_std_20 cuda_std_20)
 target_compile_options(robomaster_particle_filters_lib PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:
         --extended-lambda
@@ -55,7 +56,8 @@ PUBLIC
     CUDA::toolkit
 )
 
-target_compile_definitions(robomaster_particle_filters_lib PUBLIC
+target_compile_definitions(robomaster_particle_filters_lib
+PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:PF_TARGET_OMP THRUST_HOST_SYSTEM=THRUST_HOST_SYSTEM_CPP THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP>
     $<$<COMPILE_LANGUAGE:CUDA>:PF_TARGET_CUDA THRUST_HOST_SYSTEM=THRUST_HOST_SYSTEM_CPP THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA>
 )
@@ -69,6 +71,7 @@ add_executable(detector
     detector_submodule/src/camera/usb_camera.cpp
     detector_submodule/src/camera/realsense_camera.cpp
 )
+target_compile_features(detector PRIVATE cxx_std_20)
 
 target_include_directories(detector
 PRIVATE
