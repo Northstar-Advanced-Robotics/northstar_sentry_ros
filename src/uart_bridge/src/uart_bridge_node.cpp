@@ -9,11 +9,9 @@
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/qos.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <rclcpp/time.hpp>
 #include <rclcpp/timer.hpp>
 #include <rclcpp/utilities.hpp>
-#include <std_msgs/msg/detail/int32__struct.hpp>
 #include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/int32.hpp>
@@ -23,17 +21,16 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
-#include <uart/handlers/health_handler.hpp>
-#include <uart/handlers/odometry_handler.hpp>
-#include <uart/messages/alive_message.hpp>
-#include <uart/messages/auto_path_message.hpp>
-#include <uart/messages/autoaim_message.hpp>
-#include <uart/messages/odometry_message.hpp>
-#include <uart/uart.hpp>
 
+#include "uart/handlers/health_handler.hpp"
+#include "uart/handlers/odometry_handler.hpp"
 #include "uart/handlers/robot_id_handler.hpp"
-#include "uart/ibus_reader.hpp"
+#include "uart/messages/alive_message.hpp"
+#include "uart/messages/auto_path_message.hpp"
+#include "uart/messages/autoaim_message.hpp"
+#include "uart/messages/odometry_message.hpp"
 #include "uart/messages/vision_localization_message.hpp"
+#include "uart/uart.hpp"
 #include "uart_bridge/msg/auto_aim.hpp"
 
 using namespace std::chrono_literals;
@@ -78,7 +75,6 @@ private:
     src::uart::VisionLocalizationMessage vision_localization_msg;
 
     std::unique_ptr<src::uart::Uart> uart_;
-    std::unique_ptr<src::uart::IBusReader> flysky_reader_;
 
     std::thread rx_thread_;
 

@@ -12,9 +12,6 @@ find_package(apriltag_msgs REQUIRED)
 find_package(isaac_ros_apriltag_interfaces REQUIRED)
 
 add_executable(cov_filter_node src/cov_filter_node.cpp)
-
-add_executable(tag_translator_node src/tag_translator.cpp)
-
 target_link_libraries(cov_filter_node
 PRIVATE
   rclcpp::rclcpp
@@ -22,6 +19,7 @@ PRIVATE
   apriltag_msgs::apriltag_msgs
 )
 
+add_executable(tag_translator_node src/tag_translator.cpp)
 target_link_libraries(tag_translator_node
 PRIVATE
   rclcpp::rclcpp

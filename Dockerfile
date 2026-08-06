@@ -3,7 +3,7 @@ FROM nvidia/cuda:12.2.2-devel-ubuntu22.04
 ENV ROS_DISTRO=humble \
     DEBIAN_FRONTEND=noninteractive \
     TZ=America/Chicago \
-    ROS_LOG_DIR="/home/ubuntu/realsense_ws/logs" \
+    ROS_LOG_DIR="/ws/log/runtime" \
     PATH="/devtools:${PATH}" \
     CC=clang \
     CXX=clang++ \

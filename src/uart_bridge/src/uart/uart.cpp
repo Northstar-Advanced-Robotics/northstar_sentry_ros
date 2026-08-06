@@ -1,7 +1,8 @@
 #include "uart.hpp"
 
-#include "uart/crc/crc.hpp"
 #include <iostream>
+
+#include "uart/crc/crc.hpp"
 
 namespace src::uart
 {
@@ -43,15 +44,15 @@ Uart::Uart(
 
 void Uart::close()
 {
-    is_running_ = false; // Flag the loop to stop
-    std::cout<<"Closing\n";
-    
+    is_running_ = false;  // Flag the loop to stop
+    std::cout << "Closing\n";
+
     try
     {
         if (serial.is_open())
         {
-            serial.cancel(); // Cancel any pending read/write operations
-            serial.close();  // Close the hardware port
+            serial.cancel();  // Cancel any pending read/write operations
+            serial.close();   // Close the hardware port
         }
     }
     catch (const std::exception& e)
@@ -118,10 +119,12 @@ void Uart::receive()
         if (ec)
         {
             // If we intentionally stopped the thread, or the port closed, break out!
-            if (!is_running_ || ec == asio::error::operation_aborted || ec == asio::error::bad_descriptor) {
-                break; 
+            if (!is_running_ || ec == asio::error::operation_aborted ||
+                ec == asio::error::bad_descriptor)
+            {
+                break;
             }
-            continue; // Minor read errors can continue
+            continue;  // Minor read errors can continue
         }
 
         if (len == 0) continue;

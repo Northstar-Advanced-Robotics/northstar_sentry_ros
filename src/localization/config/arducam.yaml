@@ -15,4 +15,4 @@ arducam_node:
   
     gain: 168
     exposure_time_absolute: 39
-    camera_info_url: "file:///home/ubuntu/realsense_ws/cal/cam_info_front_1920.yaml"
+    camera_info_url: "file:///ws/cal/cam_info_front_1920.yaml"
