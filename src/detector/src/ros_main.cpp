@@ -40,6 +40,8 @@
 #include "pnp_solver.hpp"
 #include "types.hpp"
 
+std::atomic<bool> global_keep_running{true};
+
 std::atomic<long long> jetson_to_mcb_offset_us{0};
 
 class DetectorNode : public rclcpp::Node
