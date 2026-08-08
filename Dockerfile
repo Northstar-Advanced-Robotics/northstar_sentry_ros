@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.2.2-devel-ubuntu22.04
+FROM nvidia/cuda:12.9.0-devel-ubuntu22.04
 
 ENV ROS_DISTRO=humble \
     DEBIAN_FRONTEND=noninteractive \
