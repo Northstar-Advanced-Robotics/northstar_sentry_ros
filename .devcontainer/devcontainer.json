@@ -14,9 +14,7 @@
 	"containerUser": "ubuntu",
 	"updateRemoteUserUID": false,
 
-	"workspaceFolder": "/ws"
-	"workspaceMount": "source=${localWorkspaceFolder},target=/ws,type=bind",
-	"postCreateCommand": "sudo chown -R $(whoami):$(whoami) /ws",
+	"workspaceFolder": "/workspaces/northstar_sentry_ros",
 
 	"runArgs": ["--gpus", "all"],
 
@@ -28,5 +26,11 @@
 				"ms-python.python"
 			]
 		}
+	},
+
+	"remoteEnv": {
+		"CCACHE_DIR": "/workspaces/.ccache",
+		"ROS_LOG_DIR": "/workspaces/log/runtime"
 	}
+
 }

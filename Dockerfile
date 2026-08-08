@@ -64,7 +64,7 @@ RUN apt-get update && apt-get install -y sudo && \
     echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
     chmod 0440 /etc/sudoers.d/ubuntu
 
-RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /etc/bash.bashrc && \
     register-python-argcomplete3 ros2 > /etc/bash_completion.d/ros2 && \
     register-python-argcomplete3 colcon > /etc/bash_completion.d/colcon
 
