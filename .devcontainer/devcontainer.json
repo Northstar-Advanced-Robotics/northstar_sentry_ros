@@ -14,7 +14,7 @@
 	"containerUser": "ubuntu",
 	"updateRemoteUserUID": false,
 
-	"workspaceFolder": "/ws"
+	"workspaceFolder": "/ws",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/ws,type=bind",
 	"postCreateCommand": "sudo chown -R $(whoami):$(whoami) /ws",
 
