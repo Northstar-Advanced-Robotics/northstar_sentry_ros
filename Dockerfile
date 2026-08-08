@@ -3,6 +3,7 @@ FROM nvidia/cuda:12.9.0-devel-ubuntu22.04
 ENV ROS_DISTRO=humble \
     DEBIAN_FRONTEND=noninteractive \
     TZ=America/Chicago \
+    ROS_LOG_DIR="/ws/log/runtime" \
     PATH="/devtools:${PATH}" \
     CC=clang \
     CXX=clang++ \
@@ -10,6 +11,7 @@ ENV ROS_DISTRO=humble \
     CMAKE_EXPORT_COMPILE_COMMANDS=ON \
     CMAKE_C_COMPILER_LAUNCHER=ccache \
     CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    CCACHE_DIR=/ws/.ccache \
     LDFLAGS='-fuse-ld=mold'
 
 # See https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html 
@@ -62,6 +64,8 @@ RUN apt-get update && apt-get install -y sudo && \
     echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
     chmod 0440 /etc/sudoers.d/ubuntu
 
-RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /etc/bash.bashrc && \
+RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
     register-python-argcomplete3 ros2 > /etc/bash_completion.d/ros2 && \
     register-python-argcomplete3 colcon > /etc/bash_completion.d/colcon
+
+WORKDIR /ws
