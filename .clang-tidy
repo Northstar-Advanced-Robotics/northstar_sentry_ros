@@ -1,0 +1,30 @@
+Checks: >
+  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  readability-*,
+  bugprone-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  cert-*,
+  google-readability-todo
+
+WarningsAsErrors: ''
+# HeaderFileExtensions:
+#   - h
+# ImplementationFileExtensions:
+#   - c
+HeaderFilterRegex: 'src/(uart_bridge|detector|localization|path_planning).*'
+# run-clang-tidy -p build '^/ws/src/(?!(tagslam/|flex_sync/|detector/deps/)).*'
+FormatStyle:     file
+User:            davlos
+CheckOptions:    
+  - key: readability-identifier-naming.DefaultCase
+    value: 'lower_case'
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: 'UPPER_CASE'
+
+UseColor: true
+
