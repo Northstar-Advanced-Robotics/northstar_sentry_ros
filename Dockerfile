@@ -57,6 +57,12 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     pip3 install numpy==1.26.4 && \
     rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y sudo && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd -m -s /bin/bash -u 1000 -U ubuntu && \
+    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
+    chmod 0440 /etc/sudoers.d/ubuntu
+
 RUN echo 'source /opt/ros/${ROS_DISTRO}/setup.bash' >> ${HOME}/.bashrc && \
     register-python-argcomplete3 ros2 > /etc/bash_completion.d/ros2 && \
     register-python-argcomplete3 colcon > /etc/bash_completion.d/colcon
