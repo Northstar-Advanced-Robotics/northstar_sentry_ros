@@ -26,6 +26,11 @@
 				"ms-python.python"
 			]
 		}
+	},
+
+	"remoteEnv": {
+		"CCACHE_DIR": "/workspaces/.ccache",
+		"ROS_LOG_DIR": "/workspaces/log/runtime"
 	}
 
 }
