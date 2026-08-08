@@ -6,6 +6,6 @@ if [[ "$USER" == 'northstar_agx' ]]; then
   exit 1
 fi
 
-colcon build --symlink-install --event-handlers console_direct+ --packages-up-to localization --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+colcon build --symlink-install --event-handlers console_direct+ --packages-up-to localization --cmake-args -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 source ${HERE}/../install/setup.bash
 ros2 launch localization headless-launch.py

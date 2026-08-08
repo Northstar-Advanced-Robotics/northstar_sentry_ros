@@ -2,17 +2,10 @@
 build
 install
 log
-logs
-# Dep sources
-src/tagslam
-src/flex_sync
+# general
+.ccache
 .cache
 .vscode
 tag_corners.txt
 cal/cal_images_*/
 *.cameramodel
-/rosbag*
-__pycache__
-# Recording
-videos
-bags

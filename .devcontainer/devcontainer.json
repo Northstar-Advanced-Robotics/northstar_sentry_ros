@@ -1,0 +1,36 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
+{
+	"name": "Existing Dockerfile",
+	"build": {
+		// Sets the run context to one level up instead of the .devcontainer folder.
+		"context": "..",
+		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+		"dockerfile": "../Dockerfile"
+	},
+
+
+	"remoteUser": "ubuntu",
+	"containerUser": "ubuntu",
+	"updateRemoteUserUID": false,
+
+	"workspaceFolder": "/workspaces/northstar_sentry_ros",
+
+	"runArgs": ["--gpus", "all"],
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"llvm-vs-code-extensions.vscode-clangd",
+				"ms-python.python"
+			]
+		}
+	},
+
+	"remoteEnv": {
+		"CCACHE_DIR": "/workspaces/.ccache",
+		"ROS_LOG_DIR": "/workspaces/log/runtime"
+	}
+
+}

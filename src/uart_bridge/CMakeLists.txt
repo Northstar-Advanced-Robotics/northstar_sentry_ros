@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.8)
-project(uart_bridge)
+cmake_minimum_required(VERSION 3.10)
+project(uart_bridge CXX C)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -15,7 +15,6 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(uart_bridge
   "msg/AutoAim.msg"
 )
-
 rosidl_get_typesupport_target(cpp_typesupport_target uart_bridge "rosidl_typesupport_cpp")
 
 add_executable(uart_bridge_node
@@ -36,21 +35,25 @@ add_executable(uart_bridge_node
   src/uart/crc/crc.cpp
 )
 
-target_compile_features(uart_bridge_node PUBLIC c_std_99 cxx_std_20)  # Require C99 and C++17
-target_include_directories(uart_bridge_node PUBLIC src)
-
+target_compile_features(uart_bridge_node PRIVATE c_std_99 cxx_std_20)
+target_include_directories(uart_bridge_node
+PRIVATE
+  src
+)
 target_link_libraries(uart_bridge_node
+PUBLIC
   ${cpp_typesupport_target}
-)
-ament_target_dependencies(uart_bridge_node
-  rclcpp
-  std_msgs
-  nav_msgs
-  tf2_geometry_msgs
+PRIVATE
+  rclcpp::rclcpp
+  std_msgs::std_msgs
+  nav_msgs::nav_msgs
+  tf2_geometry_msgs::tf2_geometry_msgs
 )
 
-install(TARGETS uart_bridge_node
-  DESTINATION lib/${PROJECT_NAME})
+install(TARGETS
+  uart_bridge_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

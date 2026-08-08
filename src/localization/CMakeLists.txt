@@ -1,36 +1,31 @@
-cmake_minimum_required(VERSION 3.8)
-project(localization)
+cmake_minimum_required(VERSION 3.10)
+project(localization CXX)
 
-# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-#   add_compile_options(-Wall -Wextra -Wpedantic)
-# endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(apriltag_msgs REQUIRED)
 find_package(isaac_ros_apriltag_interfaces REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 
 add_executable(cov_filter_node src/cov_filter_node.cpp)
-
-add_executable(tag_translator_node src/tag_translator.cpp)
-
-ament_target_dependencies(cov_filter_node
-  rclcpp
-  nav_msgs
-  apriltag_msgs
-  isaac_ros_apriltag_interfaces
+target_link_libraries(cov_filter_node
+PRIVATE
+  rclcpp::rclcpp
+  nav_msgs::nav_msgs
+  apriltag_msgs::apriltag_msgs
 )
 
-ament_target_dependencies(tag_translator_node
-  rclcpp
-  nav_msgs
-  apriltag_msgs
-  isaac_ros_apriltag_interfaces
+add_executable(tag_translator_node src/tag_translator.cpp)
+target_link_libraries(tag_translator_node
+PRIVATE
+  rclcpp::rclcpp
+  nav_msgs::nav_msgs
+  apriltag_msgs::apriltag_msgs
+  isaac_ros_apriltag_interfaces::isaac_ros_apriltag_interfaces__rosidl_typesupport_cpp
 )
 
 install(TARGETS
@@ -39,7 +34,6 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# this makes launch/config dirs be available to ros2
 install(DIRECTORY
   launch
   config
