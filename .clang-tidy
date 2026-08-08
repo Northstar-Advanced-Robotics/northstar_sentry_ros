@@ -1,6 +1,5 @@
 Checks: >
   -*,
-  clang-diagnostic-*,
   clang-analyzer-*,
   cppcoreguidelines-*,
   readability-*,
@@ -9,22 +8,34 @@ Checks: >
   modernize-*,
   performance-*,
   cert-*,
-  google-readability-todo
-
+  concurrent-*,
+  google-readability-todo,
+  google-runtime-int,
+  -misc-non-private-member-variables-in-classes,
+  -readability-function-cognitive-complexity,
+  -performance-unnecessary-value-param,
+  -cert-dcl51-cpp,
+  -cert-dcl37-c,
+  -bugprone-reserved-identifier,
 WarningsAsErrors: ''
-# HeaderFileExtensions:
-#   - h
-# ImplementationFileExtensions:
-#   - c
-HeaderFilterRegex: 'src/(uart_bridge|detector|localization|path_planning).*'
+HeaderFilterRegex: 'src/.*\.hpp'
 # run-clang-tidy -p build '^/ws/src/(?!(tagslam/|flex_sync/|detector/deps/)).*'
-FormatStyle:     file
-User:            davlos
+FormatStyle: file
+UseColor: true
 CheckOptions:    
-  - key: readability-identifier-naming.DefaultCase
+  - key: readability-identifier-naming.FunctionCase
+    value: 'lower_case'
+  - key: readability-identifier-naming.StructCase
+    value: 'lower_case'
+  - key: readability-identifier-naming.VariableCase
+    value: 'lower_case'
+  - key: readability-identifier-naming.TypedefCase
     value: 'lower_case'
   - key: readability-identifier-naming.MacroDefinitionCase
     value: 'UPPER_CASE'
-
-UseColor: true
-
+  - key: readability-identifier-naming.MemberPrefix
+    value: 'm_'
+  - key: readability-identifier-naming.GlobalVariablePrefix
+    value: 'g_'
+  - key: google-runtime-int.TypeSuffix
+    value: '_t'
