@@ -1,10 +1,10 @@
 [submodule "src/detector/detector_submodule"]
 	path = src/detector/detector_submodule
-	url = https://github.com/GOFIRST-Robotics/Northstar-CV.git
+	url = git@github.com:GOFIRST-Robotics/Northstar-CV.git
 	branch = Clean-PF
 [submodule "src/tagslam"]
 	path = src/tagslam
-	url = https://github.com/Northstar-Advanced-Robotics/tagslam.git
+	url = git@github.com:Northstar-Advanced-Robotics/tagslam.git
 [submodule "src/flex_sync"]
 	path = src/flex_sync
-	url = https://github.com/ros-misc-utilities/flex_sync.git
+	url = git@github.com:ros-misc-utilities/flex_sync.git
