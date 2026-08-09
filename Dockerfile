@@ -40,6 +40,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
         ros-${ROS_DISTRO}-isaac-ros-apriltag \
         ros-${ROS_DISTRO}-apriltag-msgs \
         ros-${ROS_DISTRO}-v4l2-camera \
+        ros-${ROS_DISTRO}-rclc \
         libboost-all-dev  \
         libasio-dev \
         libfastcdr-dev \

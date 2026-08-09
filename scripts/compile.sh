@@ -1,0 +1,15 @@
+#!/bin/bash
+
+HERE=$(dirname ${BASH_SOURCE[0]})
+
+if [[ "$USER" == 'northstar_agx' ]]; then
+  echo "run this inside the container"
+  exit 1
+fi
+
+if (("$#" != 1)); then 
+  echo "You need to provide a package name"  
+  exit 1
+fi
+
+colcon build --symlink-install --event-handlers console_direct+ --packages-up-to "$1" --cmake-args -DCMAKE_COLOR_DIAGNOSTICS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo

@@ -1,6 +1,4 @@
 CompileFlags:
   CompilationDatabase: build/
-Diagnostics:
-  UnusedIncludes: Strict
-Completion:
-  HeaderInsertion: Never
+Index:
+  StandardLibrary: None
