@@ -24,18 +24,17 @@ public:
     RefTurretDataMessage get_ref_turret_data_message();
 
     enum MechanismID
-        {
-            TURRET_17MM_1 = 1,  ///< 17mm barrel ID 1
-            TURRET_17MM_2 = 2,  ///< 17mm barrel ID 2
-            TURRET_42MM = 3,    ///< 42mm barrel
-        };
+    {
+        TURRET_17MM_1 = 1,  ///< 17mm barrel ID 1
+        TURRET_17MM_2 = 2,  ///< 17mm barrel ID 2
+        TURRET_42MM = 3,    ///< 42mm barrel
+    };
 
     enum BulletType
-        {
-            AMMO_17 = 1,  ///< 17 mm projectile ammo.
-            AMMO_42 = 2,  ///< 42 mm projectile ammo.
-        };
-
+    {
+        AMMO_17 = 1,  ///< 17 mm projectile ammo.
+        AMMO_42 = 2,  ///< 42 mm projectile ammo.
+    };
 
     float bulletSpeed;
 
@@ -63,7 +62,6 @@ public:
 
     float yaw;
 };
-
 
 }  // namespace src::uart
 

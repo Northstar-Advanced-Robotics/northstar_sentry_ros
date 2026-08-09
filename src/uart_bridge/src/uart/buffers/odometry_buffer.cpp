@@ -1,4 +1,5 @@
 #include "odometry_buffer.hpp"
+
 #include <iostream>
 
 namespace src::uart
@@ -42,11 +43,13 @@ std::optional<OdometryMessage> OdometryBuffer::get_interpolated_state(uint32_t t
     if (buffer.empty()) return std::nullopt;
 
     // Edge cases: Target time is outside our known history
-    if (target_time <= buffer.front().timestamp){
+    if (target_time <= buffer.front().timestamp)
+    {
         // std::cout << "Front" << "\n";
         return buffer.front();
     }
-    if (target_time >= buffer.back().timestamp){
+    if (target_time >= buffer.back().timestamp)
+    {
         // std::cout << "Back" << "\n";
         return buffer.back();
     }

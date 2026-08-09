@@ -8,29 +8,30 @@
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "../Dockerfile"
 	},
-
-
 	"remoteUser": "ubuntu",
 	"containerUser": "ubuntu",
 	"updateRemoteUserUID": false,
-
 	"workspaceFolder": "/workspaces/northstar_sentry_ros",
-
-	"runArgs": ["--gpus", "all"],
-
+	"runArgs": [
+		"--gpus",
+		"all"
+	],
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"ms-vscode.cpptools",
 				"llvm-vs-code-extensions.vscode-clangd",
-				"ms-python.python"
-			]
+				"ms-python.python",
+				"eamodio.gitlens",
+				"xaver.clang-format"
+			],
+			"settings": {
+				"editor.formatOnSave": true
+			}
 		}
 	},
-
 	"remoteEnv": {
 		"CCACHE_DIR": "/workspaces/.ccache",
 		"ROS_LOG_DIR": "/workspaces/log/runtime"
 	}
-
 }

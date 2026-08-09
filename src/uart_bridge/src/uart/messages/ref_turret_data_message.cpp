@@ -30,7 +30,6 @@ void RefTurretDataMessage::parse(const std::vector<uint8_t>& bytes)
 {
     uint8_t offset = 0;
 
-
     std::memcpy(&bulletSpeed, bytes.data() + offset, sizeof(float));
     offset += sizeof(float);
 

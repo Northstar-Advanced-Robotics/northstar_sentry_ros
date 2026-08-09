@@ -4,20 +4,17 @@
 
 namespace src::uart
 {
-VisionLocalizationMessage::VisionLocalizationMessage()
-    : x(0),
-      y(0),
-      heading(0),
-      timestamp(0)
-{
-}
+VisionLocalizationMessage::VisionLocalizationMessage() : x(0), y(0), heading(0), timestamp(0) {}
 
 UartMessage::MessageType VisionLocalizationMessage::get_type_id()
 {
     return UartMessage::MessageType::VISION_LOCALIZION;
 }
 
-VisionLocalizationMessage VisionLocalizationMessage::get_vision_localization_message() { return *this; }
+VisionLocalizationMessage VisionLocalizationMessage::get_vision_localization_message()
+{
+    return *this;
+}
 
 std::vector<uint8_t> VisionLocalizationMessage::serialize()
 {

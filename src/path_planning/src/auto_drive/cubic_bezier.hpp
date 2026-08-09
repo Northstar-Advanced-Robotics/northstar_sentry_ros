@@ -1,11 +1,13 @@
 #ifndef CUBIC_BEZIER_HPP
 #define CUBIC_BEZIER_HPP
 
-#include <eigen3/Eigen/Dense>
-#include <vector>
 #include <cmath>
+#include <vector>
 
-namespace src::AutoPathing {
+#include <eigen3/Eigen/Dense>
+
+namespace src::AutoPathing
+{
 
 class CubicBezier
 {
@@ -20,10 +22,12 @@ public:
     float length;
 
     // Default constructor
-    CubicBezier() 
-        : start(0,0), end(0,0), controlStart(0,0), controlEnd(0,0), length(0) 
-    {}
-    CubicBezier(Eigen::Vector2f start_, Eigen::Vector2f end_, Eigen::Vector2f controlStart_, Eigen::Vector2f controlEnd_)
+    CubicBezier() : start(0, 0), end(0, 0), controlStart(0, 0), controlEnd(0, 0), length(0) {}
+    CubicBezier(
+        Eigen::Vector2f start_,
+        Eigen::Vector2f end_,
+        Eigen::Vector2f controlStart_,
+        Eigen::Vector2f controlEnd_)
     {
         start = start_;
         end = end_;
@@ -39,23 +43,21 @@ public:
         float t2 = t * t;
         float omt2 = oneMinusT * oneMinusT;
 
-        return start * (oneMinusT * omt2) + 
-               controlStart * (3.0f * omt2 * t) +  
-               controlEnd * (3.0f * oneMinusT * t2) + 
-               end * (t * t2);
+        return start * (oneMinusT * omt2) + controlStart * (3.0f * omt2 * t) +
+               controlEnd * (3.0f * oneMinusT * t2) + end * (t * t2);
     }
 
     Eigen::Vector2f EvaluateDerivative(float t) const
     {
         float oneMinusT = 1.0f - t;
-        return (3.0f * (oneMinusT * oneMinusT) * (controlStart - start)) + 
-               (6.0f * oneMinusT * t * (controlEnd - controlStart)) + 
+        return (3.0f * (oneMinusT * oneMinusT) * (controlStart - start)) +
+               (6.0f * oneMinusT * t * (controlEnd - controlStart)) +
                (3.0f * (t * t) * (end - controlEnd));
     }
 
     Eigen::Vector2f EvaluateSecondDerivative(float t) const
     {
-        return (6.0f * (1.0f - t) * (controlEnd - 2.0f * controlStart + start)) + 
+        return (6.0f * (1.0f - t) * (controlEnd - 2.0f * controlStart + start)) +
                (6.0f * t * (end - 2.0f * controlEnd + controlStart));
     }
 
@@ -75,6 +77,6 @@ public:
     }
 };
 
-}
+}  // namespace src::AutoPathing
 
 #endif

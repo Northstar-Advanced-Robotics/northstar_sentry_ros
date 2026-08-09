@@ -1,7 +1,7 @@
 #include "odometry_handler.hpp"
-#include <iostream>
 
 #include <atomic>
+#include <iostream>
 
 extern std::atomic<long long> jetson_to_mcb_offset_us;
 
@@ -28,17 +28,20 @@ void OdometryHandler::handle(const std::vector<uint8_t>& bytes, long long rx_tim
     }
     else
     {
-        if (current_raw_offset < previous_offset){
+        if (current_raw_offset < previous_offset)
+        {
             jetson_to_mcb_offset_us.store(current_raw_offset);
-        } else{
+        }
+        else
+        {
             double alpha = 0.05;
 
-            long long new_offset = previous_offset +
+            long long new_offset =
+                previous_offset +
                 static_cast<long long>(alpha * (current_raw_offset - previous_offset));
 
             jetson_to_mcb_offset_us.store(new_offset);
         }
-
     }
 }
 }  // namespace src::uart
