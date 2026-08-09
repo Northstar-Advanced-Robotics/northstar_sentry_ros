@@ -21,6 +21,7 @@ PRIVATE
 )
 
 add_executable(cov_filter_node_c src/cov_filter_node.c)
+target_compile_features(cov_filter_node_c PRIVATE c_std_17)
 target_link_libraries(cov_filter_node_c
 PRIVATE
   rclc::rclc

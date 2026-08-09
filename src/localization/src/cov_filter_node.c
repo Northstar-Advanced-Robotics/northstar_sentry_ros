@@ -1,4 +1,5 @@
 #include <math.h>
+#include <signal.h>
 
 #include <apriltag_msgs/msg/april_tag_detection_array.h>
 #include <nav_msgs/msg/odometry.h>
@@ -8,8 +9,6 @@
 
 #include "utils.h"
 
-#define CLAMP(val, min, max) (((val) > (max)) ? (max) : ((val) < (min)) ? (min) : (val))
-
 typedef enum cameras_e
 {
     cameras_left_e = 0,
@@ -17,8 +16,8 @@ typedef enum cameras_e
     cameras_right_e = 2,
     max_cameras_e = 3,
 } cameras_t;
-const char* const camera_names[max_cameras_e] = {"left", "back", "right"};
-const char* const camera_tag_topics[max_cameras_e] = {
+const char* const g_camera_names[max_cameras_e] = {"left", "back", "right"};
+const char* const g_camera_tag_topics[max_cameras_e] = {
     "left/detector/tags",
     "back/detector/tags",
     "right/detector/tags"};
@@ -49,17 +48,15 @@ typedef struct cov_filter_node_s
 void odom_callback(const void* msg_in, void* ctx)
 {
     const nav_msgs__msg__Odometry* msg = (const nav_msgs__msg__Odometry*)msg_in;
-    nav_msgs__msg__Odometry filtered_msg = {0};
-    nav_msgs__msg__Odometry__init(&filtered_msg);
-    nav_msgs__msg__Odometry__copy(msg, &filtered_msg);
-
     cov_filter_node_t* node = (cov_filter_node_t*)ctx;
+    nav_msgs__msg__Odometry filtered_msg = *msg;
 
     int64_t now = 0;
     const rcl_ret_t ret = rcl_clock_get_now(node->clock, &now);
     if (ret != RCL_RET_OK)
     {
-        RCUTILS_LOG_INFO("Failed to get clock->now, dropping message");  // NOLINT
+        // NOLINTNEXTLINE
+        RCUTILS_LOG_INFO_NAMED("cov_filter", "Failed to get clock->now, dropping message");
         return;
     }
 
@@ -80,14 +77,15 @@ void odom_callback(const void* msg_in, void* ctx)
     const double count_factor = (total_tags > 1) ? total_tags : 1.0;
 
     double multiplier = count_factor > 1 ? 0.1 : pow(area_factor, 2);
-    multiplier = CLAMP(multiplier, MIN_COV_MULT, MAX_COV_MULT);  // NOLINT
-
+    multiplier = CLAMP(multiplier, MIN_COV_MULT, MAX_COV_MULT);
     const size_t matrix_indices[6] = {0, 7, 14, 21, 28, 35};
     for (size_t i = 0; i < 6; i++)
     {
         filtered_msg.pose.covariance[matrix_indices[i]] = multiplier;
     }
 
+    // NOLINTNEXTLINE
+    RCUTILS_LOG_INFO_NAMED("cov_filter", "did some shit");
     (void)rcl_publish(&node->filtered_odom_pub, &filtered_msg, NULL);
 }
 
@@ -100,7 +98,8 @@ void tag_callback(const void* msg_in, void* ctx, cameras_t cam)
     const rcl_ret_t ret = rcl_clock_get_now(node->clock, &temp_now);
     if (ret != RCL_RET_OK)
     {
-        RCUTILS_LOG_INFO("Failed to get clock->now, dropping message");  // NOLINT
+        // NOLINTNEXTLINE
+        RCUTILS_LOG_INFO_NAMED("cov_filter", "Failed to get clock->now, dropping message");
         return;
     }
     camera_state_t state = {0};
@@ -134,8 +133,19 @@ const rclc_subscription_callback_with_context_t callbacks[max_cameras_e] = {
     tag_callback_right,
 };
 
+static volatile sig_atomic_t g_running = true;
+#define SPIN_SOME_TIMEOUT (100LL * 1000LL * 1000LL)
+void signal_handler(int sig)
+{
+    (void)sig;
+    g_running = false;
+}
+
 int main(const int argc, const char* const* argv)
 {
+    (void)signal(SIGINT, signal_handler);
+    (void)signal(SIGTERM, signal_handler);
+
     rcl_allocator_t alloc = rcl_get_default_allocator();
     rclc_support_t sup = {0};
     RCL_CHECK(rclc_support_init(&sup, argc, argv, &alloc));
@@ -171,7 +181,7 @@ int main(const int argc, const char* const* argv)
             &node.cameras[i],
             &node.handle,
             ROSIDL_GET_MSG_TYPE_SUPPORT(apriltag_msgs, msg, AprilTagDetectionArray),
-            camera_tag_topics[i]));
+            g_camera_tag_topics[i]));
         RCL_CHECK(rclc_executor_add_subscription_with_context(
             &executor,
             &node.cameras[i],
@@ -185,7 +195,11 @@ int main(const int argc, const char* const* argv)
         node.states[i].last_seen = now;
     }
 
-    rclc_executor_spin(&executor);
+    while (g_running && rcl_context_is_valid(&sup.context))
+    {
+        rclc_executor_spin_some(&executor, SPIN_SOME_TIMEOUT);
+    }
+    RCUTILS_LOG_INFO_NAMED("node-name", "testing this macro");  // NOLINT
 
     for (size_t i = 0; i < max_cameras_e; i++)
     {

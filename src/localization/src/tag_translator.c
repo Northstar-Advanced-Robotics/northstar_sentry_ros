@@ -1,3 +1,5 @@
+#include <signal.h>
+
 #include <apriltag_msgs/msg/april_tag_detection.h>
 #include <apriltag_msgs/msg/april_tag_detection_array.h>
 #include <isaac_ros_apriltag_interfaces/msg/april_tag_detection.h>
@@ -14,6 +16,7 @@ typedef struct tag_translator_s
     rcl_subscription_t sub;
     rcl_publisher_t pub;
     isaac_ros_apriltag_interfaces__msg__AprilTagDetectionArray msg;
+    apriltag_msgs__msg__AprilTagDetectionArray out_buf;
 } tag_translator_t;
 
 void tag_callback(const void *msg_in, void *ctx)
@@ -22,25 +25,34 @@ void tag_callback(const void *msg_in, void *ctx)
         (const isaac_ros_apriltag_interfaces__msg__AprilTagDetectionArray *)msg_in;
     tag_translator_t *node = (tag_translator_t *)ctx;
 
-    apriltag_msgs__msg__AprilTagDetectionArray out;
-    apriltag_msgs__msg__AprilTagDetectionArray__init(&out);
-
-    out.header.stamp = msg->header.stamp;
-    rosidl_runtime_c__String__copy(&msg->header.frame_id, &out.header.frame_id);
+    node->out_buf.header = msg->header;
 
     if (msg->detections.size > 0)
     {
-        apriltag_msgs__msg__AprilTagDetection__Sequence__init(
-            &out.detections,
-            msg->detections.size);
+        if (node->out_buf.detections.capacity < msg->detections.size)
+        {
+            if (node->out_buf.detections.data)
+            {
+                // prevents fini from double freeing the borrowed family string
+                memset(
+                    node->out_buf.detections.data,
+                    0,
+                    node->out_buf.detections.capacity *
+                        sizeof(apriltag_msgs__msg__AprilTagDetection));
+            }
+            apriltag_msgs__msg__AprilTagDetection__Sequence__fini(&node->out_buf.detections);
+            apriltag_msgs__msg__AprilTagDetection__Sequence__init(
+                &node->out_buf.detections,
+                msg->detections.size);
+        }
 
         for (size_t i = 0; i < msg->detections.size; i++)
         {
             isaac_ros_apriltag_interfaces__msg__AprilTagDetection detection_in =
                 msg->detections.data[i];
-            apriltag_msgs__msg__AprilTagDetection *d_out = &out.detections.data[i];
+            apriltag_msgs__msg__AprilTagDetection *d_out = &node->out_buf.detections.data[i];
 
-            rosidl_runtime_c__String__copy(&detection_in.family, &d_out->family);
+            d_out->family = detection_in.family;
             d_out->id = detection_in.id;
             d_out->centre.x = detection_in.center.x;
             d_out->centre.y = detection_in.center.y;
@@ -53,8 +65,8 @@ void tag_callback(const void *msg_in, void *ctx)
         }
     }
 
-    (void)rcl_publish(&node->pub, &out, NULL);
-    apriltag_msgs__msg__AprilTagDetectionArray__fini(&out);
+    node->out_buf.detections.size = msg->detections.size;
+    (void)rcl_publish(&node->pub, &node->out_buf, NULL);
 }
 
 rcl_ret_t tag_translator_init(
@@ -83,6 +95,7 @@ rcl_ret_t tag_translator_init(
         publisher_name));
 
     isaac_ros_apriltag_interfaces__msg__AprilTagDetectionArray__init(&node->msg);
+    memset(&node->out_buf, 0, sizeof(node->out_buf));
 
     RCL_TRY(rclc_executor_add_subscription_with_context(
         executor,
@@ -97,6 +110,14 @@ rcl_ret_t tag_translator_init(
 
 rcl_ret_t tag_translator_fini(tag_translator_t *node)
 {
+    if (node->out_buf.detections.data)
+    {
+        memset(
+            node->out_buf.detections.data,
+            0,
+            node->out_buf.detections.capacity * sizeof(apriltag_msgs__msg__AprilTagDetection));
+    }
+    apriltag_msgs__msg__AprilTagDetection__Sequence__fini(&node->out_buf.detections);
     isaac_ros_apriltag_interfaces__msg__AprilTagDetectionArray__fini(&node->msg);
     RCL_TRY(rcl_publisher_fini(&node->pub, &node->handle));
     RCL_TRY(rcl_subscription_fini(&node->sub, &node->handle));
@@ -104,8 +125,19 @@ rcl_ret_t tag_translator_fini(tag_translator_t *node)
     return RCL_RET_OK;
 }
 
+static volatile sig_atomic_t g_running = true;
+#define SPIN_SOME_TIMEOUT (100LL * 1000LL * 1000LL)
+void signal_handler(int sig)
+{
+    (void)sig;
+    g_running = false;
+}
+
 int main(const int argc, const char *const *argv)
 {
+    (void)signal(SIGINT, signal_handler);
+    (void)signal(SIGTERM, signal_handler);
+
     rcl_allocator_t alloc = rcl_get_default_allocator();
     rclc_support_t sup = {0};
     RCL_CHECK(rclc_support_init(&sup, argc, argv, &alloc));
@@ -136,7 +168,10 @@ int main(const int argc, const char *const *argv)
             pub_topics[i]));
     }
 
-    rclc_executor_spin(&executor);
+    while (g_running && rcl_context_is_valid(&sup.context))
+    {
+        rclc_executor_spin_some(&executor, SPIN_SOME_TIMEOUT);
+    }
 
     for (size_t i = 0; i < nodes_size; i++)
     {
