@@ -1,43 +1,24 @@
 #!/bin/bash
+# Boot entry point for the localization stack WITHOUT rviz
+# (localization-headless.service). Runs on the HOST.
+set -euo pipefail
 
-# THIS WAS :1 BEFORE, MAY BE INCONSISTENT
-export DISPLAY=:0
-export XAUTHORITY=/home/northstar_agx/.Xauthority
+source "$(dirname "${BASH_SOURCE[0]}")/_sentry_env.sh"
 
-# WAIT for the physical X11 display socket to exist before continuing
-while [ ! -e /tmp/.X11-unix/X0 ]; do
-  echo "Waiting for Graphical Desktop to load..."
-  sleep 2
-done
+# Headless, but give X up to 60s in case a driver still wants a display.
+sentry_wait_for_x 60 || echo "No X server after 60s - continuing headless."
 
 arducam="/dev/v4l/by-id/usb-Arducam_Arducam_B0495__USB3_2.3MP__Arducam_202500915_0001-video-index0"
 cam1="/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435_Intel_R__RealSense_TM__Depth_Camera_435_825513025416-video-index0"
 cam2="/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435_Intel_R__RealSense_TM__Depth_Camera_435_825513025424-video-index0"
 cam3="/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_415_Intel_R__RealSense_TM__Depth_Camera_415_844513021088-video-index0"
 
-if [ -e "$arducam" ] && [ -e "$cam1" ] && [ -e "$cam2" ] && [ -e "$cam3" ]; then
-  docker run --rm --net=host --ipc=host --pid=host --privileged \
-    -e="DISPLAY" -e="TERM" -e="QT_X11_NO_MITSHM=1" -e="COLORTERM" \
-    --runtime=nvidia \
-    --shm-size=8g \
-    --group-add video \
-    --group-add dialout \
-    -v="/run/udev:/run/udev:ro" \
-    -v="/dev:/dev" \
-    -v="/opt/nvidia/vpi3:/opt/nvidia/vpi3:ro" \
-    -e="NVIDIA_DRIVER_CAPABILITIES"=all \
-    -e="FASTRTPS_DEFAULT_PROFILES_FILE"=/opt/ros/fastdds.xml \
-    -v="$HOME/Docker/realsense_ws/fastdds.xml:/opt/ros/fastdds.xml" \
-    -v="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-    -v="${HOME}/.Xauthority:/home/ubuntu/.Xauthority" \
-    -v="${HOME}/Docker/realsense_ws:/home/ubuntu/realsense_ws" \
-    -w="/home/ubuntu/realsense_ws" \
-    --user=$(id -u):$(id -g) \
-    --name="ros-container" \
-    -v="${HOME}/.tar-installs:/devtools" \
-    -v="${HOME}/.config/helix:/home/ubuntu/.config/helix" \
-    sentry:latest bash -c "source /opt/ros/humble/setup.bash && scripts/headless.sh"
-else
-  echo "A camera is not plugged in"
+if [ ! -e "$arducam" ] || [ ! -e "$cam1" ] || [ ! -e "$cam2" ] || [ ! -e "$cam3" ]; then
+  echo "A camera is not plugged in - aborting." >&2
+  exit 1
 fi
 
+docker rm -f "$SENTRY_CONTAINER" 2>/dev/null || true
+sentry_docker_args
+exec docker run --rm "${SENTRY_DOCKER_ARGS[@]}" "$SENTRY_IMAGE" \
+  bash -c './scripts/headless.sh'

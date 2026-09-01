@@ -2,6 +2,7 @@
 build
 install
 log
+logs
 # general
 .ccache
 .cache
@@ -9,3 +10,18 @@ log
 tag_corners.txt
 cal/cal_images_*/
 *.cameramodel
+
+# Container HOME. scripts/ros_enter.sh runs the container with HOME pointed
+# here so shell/tool dotfiles don't litter the repo root but still persist
+# between runs.
+.container_home/
+
+# Stray dotfiles written to HOME by tools run inside the container
+# (pre-.container_home runs, or tools that ignore $HOME).
+.bash_history
+.config/
+.nv/
+.ros/
+.rviz2/
+.99-realsense-libusb.rules
+.realsense-config.json

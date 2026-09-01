@@ -1,21 +1,23 @@
 [Unit]
-Description=Runs localization on startup
-# 1. Wait for the GUI to actually load before starting!
-After=graphical.target
-Wants=graphical.target
+Description=Northstar Sentry localization stack (with rviz)
+# Wait for the GUI to load before starting.
+After=graphical.target docker.service
+Wants=graphical.target docker.service
 
 [Service]
-# 2. You MUST run this as your user. Root cannot easily draw on your user's desktop.
+# Must run as the desktop user (draws on their X display, and needs docker-group
+# membership: `sudo usermod -aG docker northstar_agx`).
 User=northstar_agx
 Group=northstar_agx
-
-# 3. Point to the primary monitor and pass the authentication file
 Environment="DISPLAY=:0"
 Environment="XAUTHORITY=/home/northstar_agx/.Xauthority"
 
-ExecStart=/home/northstar_agx/Docker/realsense_ws/scripts/startup.sh
+WorkingDirectory=/home/northstar_agx/Docker/northstar_sentry_ros
+ExecStart=/home/northstar_agx/Docker/northstar_sentry_ros/scripts/startup.sh
+ExecStop=/usr/bin/docker rm -f ros-container
 Type=simple
+Restart=on-failure
+RestartSec=5
 
 [Install]
-# 4. Bind it to the GUI target, not the headless multi-user target
 WantedBy=graphical.target
