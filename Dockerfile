@@ -1,6 +1,7 @@
-# CHANGED: JetPack 7.2.1 ships CUDA 13.2.1 on Ubuntu 24.04 (noble).
-# VERIFY: confirm this exact tag exists for linux/arm64 before committing:
-#   docker manifest inspect nvidia/cuda:13.2.1-devel-ubuntu24.04 | grep arm64
+# JetPack 7.2.1 ships CUDA 13.2.1 on Ubuntu 24.04 (noble). This tag is
+# multi-arch (linux/arm64 + linux/amd64), so the same Dockerfile builds on the
+# Jetson (arm64) and on a desktop dev machine (amd64); the arch-specific apt
+# sources below are selected at build time with `dpkg --print-architecture`.
 FROM nvidia/cuda:13.2.1-devel-ubuntu24.04
 
 # CHANGED: jazzy (Isaac ROS 4.x is Jazzy-only; Humble is not supported)
@@ -18,28 +19,32 @@ ENV ROS_DISTRO=jazzy \
     CCACHE_DIR=/ws/.ccache \
     LDFLAGS='-fuse-ld=mold'
 
-# ROS 2 + Isaac ROS apt sources.
-# The ros-apt-source .deb auto-detects the codename, so it picks up noble here.
+# ROS 2 + Isaac ROS + NVIDIA VPI apt sources.
+#
+# This image builds on BOTH arches:
+#   * arm64  -> Jetson / JetPack 7.2 (the robot).  Isaac ROS suite "noble-jetpack",
+#              VPI + cuda-toolkit-13-2 from repo.download.nvidia.com/jetson/common.
+#   * amd64  -> desktop dev container.  Isaac ROS suite "noble", VPI etc. from
+#              repo.download.nvidia.com/jetson/x86_64/noble.
+# "noble-jetpack" has no amd64 packages and plain "noble" has no arm64 Isaac ROS
+# packages, hence the split. Suite r39.2 == Jetson Linux 39.2.x (JetPack 7.2.x);
+# bump it when you move JetPack minor. Both NVIDIA repos are signed on r39.2.
 RUN apt-get update && apt-get install -y software-properties-common curl gnupg && \
     apt-add-repository universe && \
+    ARCH="$(dpkg --print-architecture)" && \
     export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}') && \
     curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb" && \
     dpkg -i /tmp/ros2-apt-source.deb && \
     rm -rf /tmp/ros2-apt-source.deb && \
-    # CHANGED: release-4.6 + "noble-jetpack" suite (was release-3 / jammy).
-    # noble-jetpack is the Jetson JetPack 7.2 channel; plain "noble" is the x86 channel.
-    # Swap release-4.6 -> release-4 if you want to float on the latest 4.x minor.
     curl -fsSL https://isaac.download.nvidia.com/isaac-ros/repos.key | gpg --dearmor -o /usr/share/keyrings/nvidia-isaac-ros.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/nvidia-isaac-ros.gpg] https://isaac.download.nvidia.com/isaac-ros/release-4.6 noble-jetpack main" > /etc/apt/sources.list.d/nvidia-isaac-ros.list && \
-    # CHANGED: added the Jetson/L4T repo. The nvidia/cuda base only carries the
-    # generic sbsa CUDA repo -- it has no VPI (libnvvpi4 / vpi4-dev) and not the
-    # cuda-toolkit-13-2 metapackage that Isaac ROS nitros/common pin. Those live
-    # in repo.download.nvidia.com/jetson/common. Suite r39.2 == JetPack 7.2.x
-    # (Jetson Linux 39.2.x); bump this when you move JetPack minor again.
-    # This repo IS signed on r39.2 (InRelease + Release.gpg present), so the
-    # jetson-ota-public key + signed-by is enough -- no [trusted=yes] needed.
     curl -fsSL https://repo.download.nvidia.com/jetson/jetson-ota-public.asc | gpg --dearmor -o /usr/share/keyrings/nvidia-l4t.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/nvidia-l4t.gpg] https://repo.download.nvidia.com/jetson/common r39.2 main" > /etc/apt/sources.list.d/nvidia-l4t.list && \
+    if [ "$ARCH" = "arm64" ]; then \
+        ISAAC_SUITE="noble-jetpack"; L4T_PATH="jetson/common"; \
+    else \
+        ISAAC_SUITE="noble"; L4T_PATH="jetson/x86_64/noble"; \
+    fi && \
+    echo "deb [signed-by=/usr/share/keyrings/nvidia-isaac-ros.gpg] https://isaac.download.nvidia.com/isaac-ros/release-4.6 ${ISAAC_SUITE} main" > /etc/apt/sources.list.d/nvidia-isaac-ros.list && \
+    echo "deb [signed-by=/usr/share/keyrings/nvidia-l4t.gpg] https://repo.download.nvidia.com/${L4T_PATH} r39.2 main" > /etc/apt/sources.list.d/nvidia-l4t.list && \
     rm -rf /var/lib/apt/lists/*
 
 # CHANGED: libopencv-dev REMOVED from this list.
@@ -49,12 +54,13 @@ RUN apt-get update && apt-get install -y software-properties-common curl gnupg &
 # (On a JetPack 7.2 *host*, NVIDIA tells you to `apt remove libopencv* opencv*`
 # for the same reason.)
 # CHANGED: the nvidia/cuda base image holds libcublas-13-2 / libcublas-dev-13-2
-# at 13.4.0.1-1 (see `apt-mark showhold`). The Jetson repo's cuda-libraries-13-2
+# at 13.4.0.1-1 (see `apt-mark showhold`). The NVIDIA repo's cuda-libraries-13-2
 # -- pulled in transitively by ros-jazzy-isaac-ros-* via cuda-toolkit-13-2 --
 # requires libcublas-13-2 >= 13.4.1.3, so the hold has to be released first or
-# apt reports "held broken packages".
+# apt reports "held broken packages". `|| true` in case a future base image
+# stops holding them.
 RUN apt-get update && \
-    apt-mark unhold libcublas-13-2 libcublas-dev-13-2 && \
+    { apt-mark unhold libcublas-13-2 libcublas-dev-13-2 || true; } && \
     apt-get upgrade -y && apt-get install -y \
         ros-${ROS_DISTRO}-ros-base \
         ros-dev-tools \
@@ -97,15 +103,17 @@ RUN apt-get update && \
     # CHANGED: numpy pin dropped -- 1.26.4 was a Humble-era constraint; Jazzy
     # expects numpy 2.x. Re-pin only if something concrete breaks.
     pip3 install --break-system-packages --upgrade cmake && \
-    # CHANGED: drop the CUDA forward-compat packages. The nvidia/cuda base ships
-    # cuda-compat-13-2 and the Jetson repo adds cuda-compat-orin-13-2; on a
-    # Jetson the CUDA driver is provided by the L4T host and mounted in, so these
-    # are dead weight. Worse, nvidia-container-toolkit 1.19.x panics in its
-    # `cudacompat` hook while parsing their libcuda.so headers, which makes the
-    # container fail to start under `--runtime=nvidia` / `--gpus all`.
-    # NVIDIA's own l4t base images do not carry these.
-    apt-get purge -y cuda-compat-13-2 cuda-compat-orin-13-2 && \
-    rm -rf /usr/local/cuda-*/compat /usr/local/cuda-*/compat_orin && \
+    # CHANGED: on arm64/Jetson, drop the CUDA forward-compat packages. The CUDA
+    # driver comes from the L4T host (mounted in), so cuda-compat-13-2 /
+    # cuda-compat-orin-13-2 are dead weight -- and nvidia-container-toolkit 1.19.x
+    # panics in its `cudacompat` hook parsing their libcuda.so headers, so the
+    # container won't start under `--runtime=nvidia`. On amd64/desktop the
+    # forward-compat libs are useful (newer container CUDA on an older host
+    # driver), and cuda-compat-orin doesn't exist -- so leave them.
+    if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
+        apt-get purge -y cuda-compat-13-2 cuda-compat-orin-13-2 && \
+        rm -rf /usr/local/cuda-*/compat /usr/local/cuda-*/compat_orin; \
+    fi && \
     rm -rf /var/lib/apt/lists/*
 
 # CHANGED: Ubuntu 24.04 base images ALREADY ship a `ubuntu` user at UID 1000,
