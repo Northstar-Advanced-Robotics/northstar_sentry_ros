@@ -137,13 +137,11 @@ private:
         long long true_jetson_time_us = mcb_generation_time_us + offset_us;
         rclcpp::Time true_ros_time(true_jetson_time_us * 1000);
 
-        double yaw = -odom_msg.yaw;
-
         gimbal_data.header.stamp = true_ros_time;
         gimbal_data.header.frame_id = "base_link";
         gimbal_data.vector.x = 0.0;             // roll (unused)
         gimbal_data.vector.y = odom_msg.pitch;  // pitch
-        gimbal_data.vector.z = yaw;             // yaw
+        gimbal_data.vector.z = odom_msg.yaw;    // yaw
         gimbal_data_pub_->publish(gimbal_data);
 
         odom_msg_ros.header.stamp = true_ros_time;
@@ -173,15 +171,15 @@ private:
 
         // orientation: yaw only (see note on pitch below)
         tf2::Quaternion q;
-        q.setRPY(0, 0, yaw);
+        q.setRPY(0, 0, odom_msg.yaw);
         odom_msg_ros.pose.pose.orientation.x = q.getX();
         odom_msg_ros.pose.pose.orientation.y = q.getY();
         odom_msg_ros.pose.pose.orientation.z = q.getZ();
         odom_msg_ros.pose.pose.orientation.w = q.getW();
 
         // twist still fine to publish for other consumers; TagSLAM ignores it
-        double local_vx = (global_vx * cos(yaw)) + (global_vy * sin(yaw));
-        double local_vy = -(global_vx * sin(yaw)) + (global_vy * cos(yaw));
+        double local_vx = (global_vx * cos(odom_msg.yaw)) + (global_vy * sin(odom_msg.yaw));
+        double local_vy = -(global_vx * sin(odom_msg.yaw)) + (global_vy * cos(odom_msg.yaw));
         odom_msg_ros.twist.twist.linear.x = local_vx;
         odom_msg_ros.twist.twist.linear.y = local_vy;
         odom_msg_ros.twist.twist.angular.z = -odom_msg.yaw_vel;
