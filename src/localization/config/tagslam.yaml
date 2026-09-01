@@ -26,7 +26,7 @@ tagslam_parameters:
   # tagslam tries to line them up as well as possible. Expect larger errors
   # because the data is not truly synchronous.
   use_approximate_sync: true
-  sync_queue_size: 10
+  sync_queue_size: 30
 body_defaults:
   position_noise: 0.01
   rotation_noise: 0.01
