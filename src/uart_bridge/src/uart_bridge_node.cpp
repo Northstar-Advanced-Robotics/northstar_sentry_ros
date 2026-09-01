@@ -149,8 +149,8 @@ private:
         odom_msg_ros.child_frame_id = "base_link";
 
         // velocities in the fixed odom frame (your existing "global" convention)
-        double global_vx = odom_msg.vel_y;
-        double global_vy = -odom_msg.vel_x;
+        double global_vx = odom_msg.vel_x;
+        double global_vy = odom_msg.vel_y;
 
         // --- integrate global velocity into an accumulated odom-frame position ---
         if (have_last_odom_)
@@ -178,11 +178,11 @@ private:
         odom_msg_ros.pose.pose.orientation.w = q.getW();
 
         // twist still fine to publish for other consumers; TagSLAM ignores it
-        double local_vx = (global_vx * cos(odom_msg.yaw)) + (global_vy * sin(odom_msg.yaw));
-        double local_vy = -(global_vx * sin(odom_msg.yaw)) + (global_vy * cos(odom_msg.yaw));
+        double local_vx = (global_vx * cos(odom_msg.yaw)) - (global_vy * sin(odom_msg.yaw));
+        double local_vy = (global_vx * sin(odom_msg.yaw)) + (global_vy * cos(odom_msg.yaw));
         odom_msg_ros.twist.twist.linear.x = local_vx;
         odom_msg_ros.twist.twist.linear.y = local_vy;
-        odom_msg_ros.twist.twist.angular.z = -odom_msg.yaw_vel;
+        odom_msg_ros.twist.twist.angular.z = odom_msg.yaw_vel;
 
         odometry_tagslam_pub_->publish(odom_msg_ros);
 
