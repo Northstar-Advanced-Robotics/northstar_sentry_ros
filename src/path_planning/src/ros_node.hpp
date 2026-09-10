@@ -280,6 +280,7 @@ public:
 
     void update()
     {
+        hasRobotPos = true;
         if (!hasRobotPos)
         {
             return;

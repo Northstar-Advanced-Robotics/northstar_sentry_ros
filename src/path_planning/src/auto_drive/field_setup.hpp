@@ -88,7 +88,8 @@ public:
         return FieldSetup(
             6.6f, 6.6f, 0.025f,
             {
-                { { 0.0f, 3.3f }, { 3.3f, -3.3f } },
+                { { -3.3f, 0.0f }, { 3.3f, 3.3f } }, // top wall
+                { { -3.3f, -3.3f }, { -0.8f, 0.0f } }, // left wall
             });
     }
 };
