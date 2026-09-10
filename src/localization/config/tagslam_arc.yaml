@@ -58,8 +58,8 @@ bodies:
       - id: 0
         pose: 
           position:
-            x: 0
-            y: 0
+            x: -3.750
+            y: -0.321
             z: 0.288
           rotation:
             x: -1.209199576
@@ -76,8 +76,26 @@ bodies:
       - id: 1
         pose: 
           position:
-            x: 0
-            y: -0.9144
+            x: -3.580
+            y: -1.334
+            z: 0.288
+          rotation:
+            x: -1.209199576
+            y: -1.209199576
+            z: 1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 2
+        pose: 
+          position:
+            x: -1.001
+            y: -2.800
             z: 0.288
           rotation:
             x: -1.209199576
@@ -91,16 +109,124 @@ bodies:
             x: 0.0174533
             y: 0.0174533
             z: 0.0174533
-      - id: 2
+      - id: 3
         pose: 
           position:
-            x: -1.7907
-            y: -3.3909
+            x: 1.001
+            y: -2.800
             z: 0.288
           rotation:
-            x: 0
-            y: -2.22144146907918
-            z: 2.22144146907918
+            x: -1.209199576
+            y: -1.209199576
+            z: 1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 4
+        pose: 
+          position:
+            x: 3.580
+            y: -1.334
+            z: 0.288
+          rotation:
+            x: -1.209199576
+            y: 1.209199576
+            z: -1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 5
+        pose: 
+          position:
+            x: 3.750
+            y: -0.321
+            z: 0.288
+          rotation:
+            x: -1.209199576
+            y: -1.209199576
+            z: 1.209199576
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 6
+        pose: 
+          position:
+            x: 5.000
+            y: 3.999
+            z: 0.288
+          rotation:
+            x: -1.570796327
+            y: 0.0
+            z: 0.0
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 7
+        pose: 
+          position:
+            x: 0.000
+            y: -2.299
+            z: 0.288
+          rotation:
+            x: 0.0
+            y: -2.221441469
+            z: 2.221441469
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 8
+        pose: 
+          position:
+            x: 0.000
+            y: 2.9839
+            z: 0.288
+          rotation:
+            x: -1.570796327
+            y: 0.0
+            z: 0.0
+          position_noise:
+            x: 0.002
+            y: 0.002
+            z: 0.002
+          rotation_noise:
+            x: 0.0174533
+            y: 0.0174533
+            z: 0.0174533
+      - id: 9
+        pose: 
+          position:
+            x: -5.000
+            y: 3.999
+            z: 0.288
+          rotation:
+            x: -1.570796327
+            y: 0.0
+            z: 0.0
           position_noise:
             x: 0.002
             y: 0.002
