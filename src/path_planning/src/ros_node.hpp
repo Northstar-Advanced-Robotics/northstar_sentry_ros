@@ -4,6 +4,8 @@
 #include <chrono>
 #include <memory>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 #include <eigen3/Eigen/Dense>
 #include <geometry_msgs/msg/point.hpp>
@@ -92,6 +94,8 @@ public:
         // Timer to call the transform callback periodically (approx 30Hz)
         odom_timer_ =
             this->create_wall_timer(33ms, std::bind(&RosVisualizer::transform_callback, this));
+
+        std::srand(std::time(0));
     }
 
     void transform_callback()
@@ -311,6 +315,13 @@ public:
 
     Eigen::Vector2f calculateWorldGoalPos()
     {
+        float distToDemoGoal = (DEMO_POINTS[currentDemoIndex] - currentRobotWorldPos).norm();
+        if (distToDemoGoal <= 0.18f) {
+            currentDemoIndex = std::rand() % 4;
+        }
+
+        return DEMO_POINTS[currentDemoIndex];
+
         float healthPercentage = (float)currentHealth / (float)MAX_HEALTH;
 
         if (healthPercentage < 0.55f)
@@ -414,6 +425,14 @@ private:
     const Eigen::Vector2f LEFT_ALL_ZONE = Eigen::Vector2f(-5.3f, 0.0f);
     const Eigen::Vector2f RIGHT_ALL_ZONE = Eigen::Vector2f(5.3f, 0.0f);
 
+    int currentDemoIndex = 0;
+    const Eigen::Vector2f DEMO_POINTS[4] = {
+       Eigen::Vector2f(-0.45f, -3.0f),
+       Eigen::Vector2f(-0.45f, 0.0f),
+       Eigen::Vector2f(3.0f, -3.0f),
+       Eigen::Vector2f(3.0f, -3.0f),
+    };
+    
     static constexpr float MID_SIZE = 0.6f;
     PathOutline* MID_CYCLE_PATH = new PathOutline(
         {Eigen::Vector2f(-MID_SIZE, MID_SIZE),

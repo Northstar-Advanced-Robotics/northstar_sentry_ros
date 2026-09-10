@@ -83,6 +83,14 @@ public:
                 //{ { -0.66f, 0.3048f }, { -0.3048f, 0.74 } },  // black/yellow box
             });
     }
+
+    static FieldSetup DemoField() {
+        return FieldSetup(
+            6.6f, 6.6f, 0.025f,
+            {
+                { { 0.0f, 3.3f }, { 3.3f, -3.3f } },
+            });
+    }
 };
 
 }  // namespace src::AutoPathing
