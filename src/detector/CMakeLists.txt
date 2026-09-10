@@ -7,8 +7,13 @@ endif()
 
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(realsense2 REQUIRED)
 find_package(Threads REQUIRED)
+# NOTE: realsense2 is deliberately NOT linked into the ROS node. ros-jazzy-
+# librealsense2 bundles a fastcdr 1.x DDS layer and exports its own
+# eprosima::fastcdr + ROS message (de)serialize symbols, which collide with
+# Jazzy's fastcdr 2.x and segfault inside rmw_create_node. The ROS node gets
+# frames from topics, not librealsense2 - only the standalone binaries
+# (main.cpp / Northstar_CV2.cpp) use the realsense_camera driver.
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -68,8 +73,6 @@ add_executable(detector
     detector_submodule/src/pnp_solver.cpp
     detector_submodule/src/number_classifier.cpp
     detector_submodule/src/uart/messages/autoaim_message.cpp
-    detector_submodule/src/camera/usb_camera.cpp
-    detector_submodule/src/camera/realsense_camera.cpp
 )
 target_compile_features(detector PRIVATE cxx_std_20)
 
@@ -81,7 +84,6 @@ PRIVATE
 
 target_link_libraries(detector
     ${OpenCV_LIBS}
-    realsense2::realsense2
     Threads::Threads
     robomaster_particle_filters_lib
 )

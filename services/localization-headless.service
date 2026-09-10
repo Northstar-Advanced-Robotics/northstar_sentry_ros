@@ -1,13 +1,20 @@
 [Unit]
-Description=Runs localization on startup
+Description=Northstar Sentry localization stack (headless, no rviz)
 After=graphical.target docker.service
 Wants=graphical.target docker.service
 
 [Service]
 User=northstar_agx
 Group=northstar_agx
-ExecStart=/home/northstar_agx/Docker/realsense_ws/scripts/startup-headless.sh
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/northstar_agx/.Xauthority"
+
+WorkingDirectory=/home/northstar_agx/Docker/northstar_sentry_ros
+ExecStart=/home/northstar_agx/Docker/northstar_sentry_ros/scripts/startup-headless.sh
+ExecStop=/usr/bin/docker rm -f ros-container
 Type=simple
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=graphical.target

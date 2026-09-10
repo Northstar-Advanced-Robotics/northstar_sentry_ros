@@ -401,7 +401,7 @@ private:
     }
 };
 
-const FieldSetup ThetaStar::fieldSetup = FieldSetup::ARC_ADJUSTED();
+const FieldSetup ThetaStar::fieldSetup = FieldSetup::DemoField();
 
 }  // namespace src::AutoPathing
 

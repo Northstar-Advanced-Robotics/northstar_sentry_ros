@@ -1,0 +1,6 @@
+# The Dockerfile has no COPY/ADD - it builds purely from apt - so nothing from
+# the repo needs to go into the build context. Exclude everything except the
+# Dockerfile itself so `docker build .` doesn't tar up .git, .ccache, build/,
+# install/, .container_home/, etc.
+*
+!Dockerfile
