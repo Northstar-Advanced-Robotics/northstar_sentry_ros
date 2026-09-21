@@ -1,17 +1,14 @@
 [Unit]
-Description=Restarts CV
-
+Description=Northstar Sentry CV (detector) watchdog
+# Tie lifecycle to the headless stack that owns the container.
 BindsTo=localization-headless.service
-# PartOf=localization-headless.service
 After=localization-headless.service docker.service
 
 [Service]
 User=northstar_agx
 Group=northstar_agx
-
-ExecStart=docker exec ros-container bash -c 'scripts/cv-reset.sh' 
+ExecStart=/usr/bin/docker exec ros-container bash -c /ws/scripts/cv-reset.sh
 Type=simple
-
 Restart=always
 RestartSec=5
 
