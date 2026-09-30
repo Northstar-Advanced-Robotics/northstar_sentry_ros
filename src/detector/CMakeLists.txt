@@ -6,14 +6,9 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 find_package(CUDAToolkit REQUIRED)
+
 find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
-# NOTE: realsense2 is deliberately NOT linked into the ROS node. ros-jazzy-
-# librealsense2 bundles a fastcdr 1.x DDS layer and exports its own
-# eprosima::fastcdr + ROS message (de)serialize symbols, which collide with
-# Jazzy's fastcdr 2.x and segfault inside rmw_create_node. The ROS node gets
-# frames from topics, not librealsense2 - only the standalone binaries
-# (main.cpp / Northstar_CV2.cpp) use the realsense_camera driver.
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -52,6 +47,7 @@ target_include_directories(robomaster_particle_filters_lib
 PUBLIC
     detector_submodule/deps/robomaster-particle-filters/include
     detector_submodule/deps/robomaster-particle-filters/deps/particle-filter
+    "${CUDAToolkit_INCLUDE_DIRS}/cccl"
 PRIVATE
     detector_submodule/deps/robomaster-particle-filters/deps/eigen
 )

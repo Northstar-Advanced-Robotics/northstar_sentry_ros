@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Core>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -368,7 +368,7 @@ public:
         return translateBezierFromGridToWorld(
             src::AutoPathing::CubicBezierFitter::FitCubic(populatedPath, 30, 1, .001));
     }
-
+    
 private:
     const MidCycleType currentMidCycleType = MidCycleType::Mid;
     const TravelType currentPushType = TravelType::Bend;

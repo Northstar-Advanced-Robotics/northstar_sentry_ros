@@ -1,10 +1,5 @@
-# JetPack 7.2.1 ships CUDA 13.2.1 on Ubuntu 24.04 (noble). This tag is
-# multi-arch (linux/arm64 + linux/amd64), so the same Dockerfile builds on the
-# Jetson (arm64) and on a desktop dev machine (amd64); the arch-specific apt
-# sources below are selected at build time with `dpkg --print-architecture`.
 FROM nvidia/cuda:13.2.1-devel-ubuntu24.04
 
-# CHANGED: jazzy (Isaac ROS 4.x is Jazzy-only; Humble is not supported)
 ENV ROS_DISTRO=jazzy \
     DEBIAN_FRONTEND=noninteractive \
     TZ=America/Chicago \
@@ -74,21 +69,12 @@ RUN apt-get update && \
         ros-${ROS_DISTRO}-isaac-ros-apriltag \
         ros-${ROS_DISTRO}-v4l2-camera \
         ros-${ROS_DISTRO}-rclc \
-        # CHANGED: re-added. A Jazzy build of both now exists in the ROS repo
-        # (gtsam 4.2.0, apriltag-detector 3.1.0); tagslam/package.xml depends on
-        # `gtsam` and `apriltag_detector`.
         ros-${ROS_DISTRO}-gtsam \
         ros-${ROS_DISTRO}-apriltag-detector \
         libboost-all-dev \
         libasio-dev \
         libfastcdr-dev \
         clang \
-        # CHANGED: added. CUDA 13.2 bundles Thrust 3.2, whose scan/copy_if
-        # dispatch headers `#include <omp.h>` unconditionally. GCC ships omp.h
-        # but the CUDA host compiler here is clang, which needs its own copy;
-        # libomp-dev drops it in clang's resource dir. (Not needed on JetPack 6
-        # / CUDA 12.6 -- older Thrust only pulled omp.h when the OMP backend was
-        # actually selected.)
         libomp-dev \
         mold \
         ccache \
@@ -97,19 +83,7 @@ RUN apt-get update && \
         ninja-build \
         gdb \
         bash-completion \
-        python3-argcomplete \
-        python3-pip && \
-    # CHANGED: noble enforces PEP 668, so system pip installs need this flag.
-    # CHANGED: numpy pin dropped -- 1.26.4 was a Humble-era constraint; Jazzy
-    # expects numpy 2.x. Re-pin only if something concrete breaks.
-    pip3 install --break-system-packages --upgrade cmake && \
-    # CHANGED: on arm64/Jetson, drop the CUDA forward-compat packages. The CUDA
-    # driver comes from the L4T host (mounted in), so cuda-compat-13-2 /
-    # cuda-compat-orin-13-2 are dead weight -- and nvidia-container-toolkit 1.19.x
-    # panics in its `cudacompat` hook parsing their libcuda.so headers, so the
-    # container won't start under `--runtime=nvidia`. On amd64/desktop the
-    # forward-compat libs are useful (newer container CUDA on an older host
-    # driver), and cuda-compat-orin doesn't exist -- so leave them.
+        python3-argcomplete && \
     if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         apt-get purge -y cuda-compat-13-2 cuda-compat-orin-13-2 && \
         rm -rf /usr/local/cuda-*/compat /usr/local/cuda-*/compat_orin; \
@@ -128,7 +102,6 @@ RUN apt-get update && apt-get install -y sudo && \
     echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
     chmod 0440 /etc/sudoers.d/ubuntu
 
-# CHANGED: noble ships `register-python-argcomplete`, not the `3`-suffixed name.
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /etc/bash.bashrc && \
     register-python-argcomplete ros2 > /etc/bash_completion.d/ros2 && \
     register-python-argcomplete colcon > /etc/bash_completion.d/colcon
