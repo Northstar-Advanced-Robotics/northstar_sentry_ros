@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'Dockerfile'
+      - '.devcontainer/Dockerfile'
       - '.github/workflows/docker-build.yml'
 
 jobs:
@@ -31,6 +31,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: .devcontainer/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/northstar-umn/sentry:latest
