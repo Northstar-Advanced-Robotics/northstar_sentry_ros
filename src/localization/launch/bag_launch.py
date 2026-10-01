@@ -16,7 +16,9 @@ def generate_launch_description():
     ekf_config = os.path.join(pkg_share, 'config', 'ekf_combined.yaml')
     arducam_config = os.path.join(pkg_share, 'config', 'arducam.yaml')
     qos_overrides_config = os.path.join(pkg_share, 'config', 'qos_overrides.yaml')
-    rviz_config = '/home/ubuntu/realsense_ws/good_config.rviz'
+    _repo_root = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..'))
+    rviz_config = os.path.join(_repo_root, 'Better_config.rviz')
 
     composable_nodes = []
     tf_nodes = []

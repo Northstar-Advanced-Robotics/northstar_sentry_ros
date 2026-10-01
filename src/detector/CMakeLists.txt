@@ -6,8 +6,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 find_package(CUDAToolkit REQUIRED)
+
 find_package(OpenCV REQUIRED)
-find_package(realsense2 REQUIRED)
 find_package(Threads REQUIRED)
 
 find_package(ament_cmake REQUIRED)
@@ -47,6 +47,7 @@ target_include_directories(robomaster_particle_filters_lib
 PUBLIC
     detector_submodule/deps/robomaster-particle-filters/include
     detector_submodule/deps/robomaster-particle-filters/deps/particle-filter
+    "${CUDAToolkit_INCLUDE_DIRS}/cccl"
 PRIVATE
     detector_submodule/deps/robomaster-particle-filters/deps/eigen
 )
@@ -68,8 +69,6 @@ add_executable(detector
     detector_submodule/src/pnp_solver.cpp
     detector_submodule/src/number_classifier.cpp
     detector_submodule/src/uart/messages/autoaim_message.cpp
-    detector_submodule/src/camera/usb_camera.cpp
-    detector_submodule/src/camera/realsense_camera.cpp
 )
 target_compile_features(detector PRIVATE cxx_std_20)
 
@@ -81,7 +80,6 @@ PRIVATE
 
 target_link_libraries(detector
     ${OpenCV_LIBS}
-    realsense2::realsense2
     Threads::Threads
     robomaster_particle_filters_lib
 )
