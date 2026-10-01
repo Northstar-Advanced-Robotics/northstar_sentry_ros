@@ -15,7 +15,6 @@ ENV ROS_DISTRO=jazzy \
     LDFLAGS='-fuse-ld=mold'
 
 # ROS 2 + Isaac ROS + NVIDIA VPI apt sources.
-#
 # This image builds on BOTH arches:
 #   * arm64  -> Jetson / JetPack 7.2 (the robot).  Isaac ROS suite "noble-jetpack",
 #              VPI + cuda-toolkit-13-2 from repo.download.nvidia.com/jetson/common.
@@ -42,18 +41,6 @@ RUN apt-get update && apt-get install -y software-properties-common curl gnupg &
     echo "deb [signed-by=/usr/share/keyrings/nvidia-l4t.gpg] https://repo.download.nvidia.com/${L4T_PATH} r39.2 main" > /etc/apt/sources.list.d/nvidia-l4t.list && \
     rm -rf /var/lib/apt/lists/*
 
-# CHANGED: libopencv-dev REMOVED from this list.
-# Isaac ROS 4.6 is built against OpenCV 4.6.0 and pulls it in itself. Ubuntu's
-# libopencv-dev is 4.6.x on noble, but installing it explicitly can win the
-# dependency resolution and shadow NVIDIA's build. Let Isaac ROS supply it.
-# (On a JetPack 7.2 *host*, NVIDIA tells you to `apt remove libopencv* opencv*`
-# for the same reason.)
-# CHANGED: the nvidia/cuda base image holds libcublas-13-2 / libcublas-dev-13-2
-# at 13.4.0.1-1 (see `apt-mark showhold`). The NVIDIA repo's cuda-libraries-13-2
-# -- pulled in transitively by ros-jazzy-isaac-ros-* via cuda-toolkit-13-2 --
-# requires libcublas-13-2 >= 13.4.1.3, so the hold has to be released first or
-# apt reports "held broken packages". `|| true` in case a future base image
-# stops holding them.
 RUN apt-get update && \
     { apt-mark unhold libcublas-13-2 libcublas-dev-13-2 || true; } && \
     apt-get upgrade -y && apt-get install -y \
@@ -83,6 +70,7 @@ RUN apt-get update && \
         ninja-build \
         gdb \
         bash-completion \
+        sudo \
         python3-argcomplete && \
     if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         apt-get purge -y cuda-compat-13-2 cuda-compat-orin-13-2 && \
@@ -90,16 +78,7 @@ RUN apt-get update && \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
-# CHANGED: Ubuntu 24.04 base images ALREADY ship a `ubuntu` user at UID 1000,
-# so the old `useradd -u 1000 ubuntu` fails the build. Reuse the existing user.
-RUN apt-get update && apt-get install -y sudo && \
-    rm -rf /var/lib/apt/lists/* && \
-    if ! id -u ubuntu >/dev/null 2>&1; then \
-        useradd -m -s /bin/bash -u 1000 -U ubuntu; \
-    else \
-        usermod -s /bin/bash ubuntu && mkdir -p /home/ubuntu && chown ubuntu:ubuntu /home/ubuntu; \
-    fi && \
-    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
+RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
     chmod 0440 /etc/sudoers.d/ubuntu
 
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /etc/bash.bashrc && \
