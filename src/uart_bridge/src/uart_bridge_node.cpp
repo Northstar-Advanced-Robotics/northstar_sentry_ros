@@ -51,6 +51,7 @@ private:
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::unique_ptr<tf2_ros::TransformListener> tf2_listener;
     rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr bezier_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr velocity_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr vision_localization_sub_;
 
     rclcpp::Subscription<uart_bridge::msg::AutoAim>::SharedPtr autoaim_sub_;
@@ -91,6 +92,10 @@ private:
         auto_path_msg.control_point2_y = msg->data[7];
         auto_path_msg.length = msg->data[8];
         uart_->send(std::make_unique<src::uart::AutoPathMessage>(auto_path_msg));
+    }
+
+    void world_velocity_target_callback(geometry_msgs::msg::Vector3::SharedPtr msg) {
+        // TODO: send this over uart eventually, placeholder for now
     }
 
     void autoaim_callback(uart_bridge::msg::AutoAim::SharedPtr msg)
@@ -257,6 +262,11 @@ public:
             "/planner/bezier_curve",
             10,
             std::bind(&UartBridge::auto_path_message_callback, this, std::placeholders::_1));
+        
+        velocity_sub_ = this->create_subscription<geometry_msgs::msg::Vector3>(
+            "planner/world_velocity_target",
+            10,
+            std::bind(&UartBridge::world_velocity_target_callback, this, std::placeholders::_1));
 
         autoaim_sub_ = this->create_subscription<uart_bridge::msg::AutoAim>(
             "/autoaim",

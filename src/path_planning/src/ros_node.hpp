@@ -1,13 +1,13 @@
 #ifndef ROS_VISUALIZER_HPP
 #define ROS_VISUALIZER_HPP
 
-#include <chrono>
 #include <memory>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
 
 #include <Eigen/Core>
+#include <Eigen/src/Core/Matrix.h>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -16,6 +16,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <rclcpp/node.hpp>
+#include <rclcpp/time.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/int32.hpp>
 #include <visualization_msgs/msg/marker.hpp>
@@ -30,6 +31,7 @@
 #include "auto_drive/cubic_bezier_fitter.hpp"
 #include "auto_drive/path_outline.hpp"
 #include "auto_drive/theta_star.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
 
 using namespace std::chrono_literals;
 
@@ -67,15 +69,12 @@ public:
         tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
         grid_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("planner/map", 1);
-        bezier_data_pub_ =
-            this->create_publisher<std_msgs::msg::Float32MultiArray>("planner/bezier_curve", 10);
+        bezier_data_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("planner/bezier_curve", 10);
 
-        control_points_pub_ =
-            this->create_publisher<visualization_msgs::msg::Marker>("planner/control_points", 10);
-        bezier_published_visualizer_pub_ =
-            this->create_publisher<visualization_msgs::msg::Marker>("planner/published_bezier", 10);
-        bezier_current_visualizer_pub_ =
-            this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
+        control_points_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/control_points", 10);
+        bezier_published_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/published_bezier", 10);
+        bezier_current_visualizer_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("planner/current_bezier", 10);
+        velocity_pub_ = this->create_publisher<geometry_msgs::msg::Vector3>("planner/world_velocity_target", 10);
 
         robotid_sub_ = this->create_subscription<std_msgs::msg::Int32>(
             "uart/robotid",
@@ -91,9 +90,7 @@ public:
         lastBezierPublishTime = this->now();
         lastGridPublishTime = this->now();
 
-        // Timer to call the transform callback periodically (approx 30Hz)
-        odom_timer_ =
-            this->create_wall_timer(33ms, std::bind(&RosVisualizer::transform_callback, this));
+        odom_timer_ = this->create_wall_timer(33ms, std::bind(&RosVisualizer::transform_callback, this));
 
         std::srand(std::time(0));
     }
@@ -104,13 +101,11 @@ public:
 
         try
         {
-            // Lookup the latest transform from map to rig
             transform = tf2_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero);
 
             double x_offset = transform.transform.translation.x;
             double y_offset = transform.transform.translation.y;
 
-            // Map TF to internal state (maintaining your specific coordinate mapping)
             currentRobotWorldPos = Eigen::Vector2f(x_offset, y_offset);
             hasRobotPos = true;
 
@@ -158,6 +153,15 @@ public:
 
         bezier_data_pub_->publish(arr);
         lastBezierPublishTime = currentTime;
+    }
+
+    void publishVelocityData(Eigen::Vector2f velocity, rclcpp::Time& currentTime) {
+        geometry_msgs::msg::Vector3 msg;
+        msg.set__x(velocity.x());
+        msg.set__y(velocity.y());
+        msg.set__z(0.0);
+
+        velocity_pub_->publish(msg);
     }
 
     void publishBezierVisualizer(AutoPathing::CubicBezier& currentBezier, rclcpp::Time& currentTime)
@@ -218,7 +222,7 @@ public:
         points_marker.action = visualization_msgs::msg::Marker::ADD;
         points_marker.scale.x = 0.1;
         points_marker.scale.y = 0.1;
-        points_marker.scale.z = 0.1;  // Small spheres
+        points_marker.scale.z = 0.1;
         points_marker.color.r = 1.0;
         points_marker.color.g = 1.0;
         points_marker.color.b = 0.0;
@@ -291,12 +295,12 @@ public:
         currentWorldGoalPos = calculateWorldGoalPos();
         currentGridGoalPos = thetaStar->ConvertWorldToGrid(currentWorldGoalPos);
 
-        Eigen::Vector2i currentRobotGridPos =
-            thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()});
-        if (thetaStar->isNodeValidAndEmpty(currentRobotGridPos))
-        {
-            lastValidRobotGridPos = currentRobotGridPos;
-        }
+        Eigen::Vector2i currentRobotGridPos = thetaStar->ConvertWorldToGrid({currentRobotWorldPos.x(), currentRobotWorldPos.y()});
+        if (thetaStar->isNodeValidAndEmpty(currentRobotGridPos)) { lastValidRobotGridPos = currentRobotGridPos; }
+
+        currentWorldGoalVelocity = calculateVelocityToNextNode();
+        publishVelocityData(currentWorldGoalPos, currentTime);
+        return;
 
         AutoPathing::CubicBezier currentBezier = calculateCurrentBezierToGoal();
 
@@ -368,6 +372,11 @@ public:
         return translateBezierFromGridToWorld(
             src::AutoPathing::CubicBezierFitter::FitCubic(populatedPath, 30, 1, .001));
     }
+
+    Eigen::Vector2f calculateVelocityToNextNode() {
+        std::vector<Eigen::Vector2i> fullGridPath = thetaStar->FindPath(lastValidRobotGridPos, currentGridGoalPos);
+        return (thetaStar->ConvertGridToWorld(fullGridPath[1].cast<float>()) - currentRobotWorldPos).normalized();
+    }
     
 private:
     const MidCycleType currentMidCycleType = MidCycleType::Mid;
@@ -382,6 +391,7 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_published_visualizer_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr bezier_current_visualizer_pub_;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr velocity_pub_;
 
     rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr robotid_sub_;
     rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr health_sub_;
@@ -413,6 +423,8 @@ private:
 
     Eigen::Vector2f currentWorldGoalPos;
     Eigen::Vector2i currentGridGoalPos;
+
+    Eigen::Vector2f currentWorldGoalVelocity;
 
     bool hasRobotPos = false;
     Eigen::Vector2f currentRobotWorldPos;
